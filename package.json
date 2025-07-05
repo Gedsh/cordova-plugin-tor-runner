@@ -1,0 +1,25 @@
+{
+  "name": "cordova-plugin-tor-runner",
+  "version": "0.0.1",
+  "description": "Run Tor on Android",
+  "cordova": {
+    "id": "cordova-plugin-tor-runner",
+    "platforms": ["android"]
+  },
+  "keywords": [
+    "tor",
+    "privacy",
+    "ecosystem:cordova",
+    "cordova-android"
+  ],
+  "author": "Oleksandr Garmatin",
+  "license": "GPL v3",
+  "engines": {
+    "cordovaDependencies": {
+      "0.0.1": {
+        "cordova": ">=10.0.0",
+        "cordova-android": ">=10.1.2"
+      }
+    }
+  }
+}

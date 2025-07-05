@@ -1,0 +1,34 @@
+apply plugin: 'kotlin-kapt'
+
+buildscript {
+    ext.dagger_version = '2.55'
+}
+
+android {
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs 'jniLibs/'
+        }
+    }
+
+    packagingOptions {
+        jniLibs.useLegacyPackaging = true
+        doNotStrip '*/*/libobfs4proxy.so'
+        doNotStrip '*/*/libsnowflake.so'
+        doNotStrip '*/*/libwebtunnel.so'
+    }
+}
+
+
+dependencies {
+    kapt "com.google.dagger:dagger-compiler:$dagger_version"
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}

@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        id="cordova-plugin-tor-runner"
+        version="0.0.1">
+
+    <name>Tor Runner</name>
+
+    <description>Run Tor on Android</description>
+
+    <keywords>tor, privacy</keywords>
+
+    <license>GPL v3</license>
+
+    <author>Oleksandr Garmatin</author>
+
+    <engines>
+        <engine name="cordova" version=">=10.0.0"/>
+        <engine name="cordova-android" version=">=10.1.2"/>
+    </engines>
+
+    <js-module src="www/tor-runner.js" name="TorRunner">
+        <clobbers target="cordova.plugins.torRunner" />
+    </js-module>
+
+    <platform name="android">
+
+        <source-file
+                src="torplugin/app/jniLibs/armeabi-v7a/libtor.so"
+                target-dir="jniLibs/armeabi-v7a" />
+        <source-file
+                src="torplugin/app/jniLibs/armeabi-v7a/libobfs4proxy.so"
+                target-dir="jniLibs/armeabi-v7a" />
+        <source-file
+                src="torplugin/app/jniLibs/armeabi-v7a/libsnowflake.so"
+                target-dir="jniLibs/armeabi-v7a" />
+        <source-file
+                src="torplugin/app/jniLibs/armeabi-v7a/libwebtunnel.so"
+                target-dir="jniLibs/armeabi-v7a" />
+
+        <source-file
+                src="torplugin/app/jniLibs/arm64-v8a/libtor.so"
+                target-dir="jniLibs/arm64-v8a" />
+        <source-file
+                src="torplugin/app/jniLibs/arm64-v8a/libobfs4proxy.so"
+                target-dir="jniLibs/arm64-v8a" />
+        <source-file
+                src="torplugin/app/jniLibs/arm64-v8a/libsnowflake.so"
+                target-dir="jniLibs/arm64-v8a" />
+        <source-file
+                src="torplugin/app/jniLibs/arm64-v8a/libwebtunnel.so"
+                target-dir="jniLibs/arm64-v8a" />
+
+        <source-file
+                src="torplugin/app/src/main/assets/tor.mp3"
+                target-dir="assets" />
+
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/App.kt"
+                target-dir="java/pan/alexander/cordova/torrunner" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/AppLifecycleListener.kt"
+                target-dir="java/pan/alexander/cordova/torrunner" />
+
+        <source-file
+                src="torplugin/app/src/cordova/java/pan/alexander/cordova/torrunner/di/AppComponent.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/di" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/di/CoroutinesModule.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/di" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/di/SharedPreferencesModule.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/di" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/di/RepositoryModule.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/di" />
+
+
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/framework/ActionSender.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/framework" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/framework/ConfigurationManager.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/framework" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/framework/CoreService.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/framework" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/framework/CoreServiceActions.java"
+                target-dir="java/pan/alexander/cordova/torrunner/framework" />
+
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/Constants.java"
+                target-dir="java/pan/alexander/cordova/torrunner/utils" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/file/FileManager.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/utils/file" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/logger/Logger.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/utils/logger" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/portchecker/PortChecker.java"
+                target-dir="java/pan/alexander/cordova/torrunner/utils/portchecker" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/zip/ZipFileManager.java"
+                target-dir="java/pan/alexander/cordova/torrunner/utils/zip" />
+
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/plugin/Plugin.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/plugin" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/plugin/PluginAction.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/plugin" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/plugin/TorPluginManager.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/plugin" />
+
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/AppManager.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/configuration/ConfigurationRepository.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/configuration" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/CommandResult.java"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/CoreState.java"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/CoreStatus.java"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/Killer.java"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/ProcessStarter.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/Restarter.java"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/ShellExitCode.java"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/StarterHelper.java"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/TorManager.java"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/TorMode.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/installer/Installer.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/installer" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/preferences/PreferenceRepository.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/preferences" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/preferences/PreferenceKeys.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/preferences" />
+
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/configuration/ConfigurationRepositoryImpl.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/data/configuration" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/preferences/PreferenceRepositoryImpl.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/data/preferences" />
+
+
+        <config-file target="config.xml" parent="/*">
+            <preference name="GradlePluginKotlinEnabled" value="true" />
+            <preference name="GradlePluginKotlinVersion" value="1.9.24" />
+            <feature name="TorRunner">
+                <param name="android-package" value="pan.alexander.cordova.torrunner.plugin.Plugin"/>
+                <param name="onload" value="true" />
+            </feature>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <service
+                    android:name="pan.alexander.cordova.torrunner.framework.CoreService"
+                    android:exported="false">
+            </service>
+        </config-file>
+
+        <preference name="ANDROID_DAGGER_VERSION" default="2.55" />
+        <preference name="KOTLINX_COROUTINES_VERSION" default="1.9.0" />
+        <preference name="LIFECYCLE_PROCESS_VERSION" default="2.9.1" />
+        <preference name="ANDROID_SHELL_VERSION" default="1.0.1" />
+        <preference name="OK_HTTP_VERSION" default="4.12.0" />
+        <preference name="ANDROID_PREFERENCES_VERSION" default="1.2.1" />
+
+        <framework src="com.google.dagger:dagger:$ANDROID_DAGGER_VERSION" />
+        <framework src="org.jetbrains.kotlinx:kotlinx-coroutines-android:$KOTLINX_COROUTINES_VERSION" />
+        <framework src="androidx.lifecycle:lifecycle-process:$LIFECYCLE_PROCESS_VERSION" />
+        <framework src="com.jrummyapps:android-shell:$ANDROID_SHELL_VERSION" />
+        <framework src="com.squareup.okhttp3:okhttp:$OK_HTTP_VERSION" />
+        <framework src="androidx.preference:preference-ktx:$ANDROID_PREFERENCES_VERSION" />
+
+        <framework src="torplugin/gradle/custom-build.gradle" custom="true" type="gradleReference" />
+
+    </platform>
+</plugin>
