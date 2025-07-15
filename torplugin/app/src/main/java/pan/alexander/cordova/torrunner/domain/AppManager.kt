@@ -43,7 +43,7 @@ class AppManager @Inject constructor(
     }
 
     fun onActivityDestroyed() {
-        stopTor()
+
     }
 
     private fun startTor() {
