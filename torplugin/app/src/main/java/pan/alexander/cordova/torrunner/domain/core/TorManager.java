@@ -24,37 +24,41 @@ import static pan.alexander.cordova.torrunner.domain.core.CoreState.RUNNING;
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.STARTING;
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.STOPPED;
 import static pan.alexander.cordova.torrunner.utils.logger.Logger.loge;
-import static pan.alexander.cordova.torrunner.utils.logger.Logger.logi;
+import static pan.alexander.cordova.torrunner.utils.thread.ThreadDelay.makeDelay;
 
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
-import pan.alexander.cordova.torrunner.framework.ConfigurationManager;
+import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository;
 import pan.alexander.cordova.torrunner.utils.file.FileManager;
 import pan.alexander.cordova.torrunner.utils.portchecker.PortChecker;
+import pan.alexander.cordova.torrunner.utils.thread.ThreadFinder;
 
+@Singleton
 public class TorManager {
 
     private final PortChecker portChecker;
     private final FileManager fileManager;
-    private final ConfigurationManager configuration;
+    private final ConfigurationRepository configuration;
     private final CoreStatus coreStatus;
     private final StarterHelper starterHelper;
     private final Restarter restarter;
     private final Killer killer;
+    private final ThreadFinder threadFinder;
 
     @Inject
     public TorManager(
             PortChecker portChecker,
             FileManager fileManager,
-            ConfigurationManager configuration,
+            ConfigurationRepository configuration,
             CoreStatus coreStatus,
             StarterHelper starterHelper,
             Restarter restarter,
-            Killer killer
+            Killer killer,
+            ThreadFinder threadFinder
     ) {
         this.portChecker = portChecker;
         this.fileManager = fileManager;
@@ -63,6 +67,7 @@ public class TorManager {
         this.starterHelper = starterHelper;
         this.restarter = restarter;
         this.killer = killer;
+        this.threadFinder = threadFinder;
     }
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -125,7 +130,7 @@ public class TorManager {
 
         try {
             if (coreStatus.getTorState() != RESTARTING) {
-                result = findThreadByName("TorThread");
+                result = threadFinder.findThreadByName("TorThread");
             }
         } catch (Exception e) {
             loge("checkPreviouslyRunningTorModule", e);
@@ -233,48 +238,6 @@ public class TorManager {
             }
 
         }).start();
-    }
-
-    private void makeDelay(int sec) {
-        try {
-            TimeUnit.SECONDS.sleep(sec);
-        } catch (InterruptedException e) {
-            loge("TorManager makeDelay interrupted!", e);
-        }
-    }
-
-    public Thread findThreadByName(String threadName) {
-        Thread currentThread = Thread.currentThread();
-        ThreadGroup threadGroup = getRootThreadGroup(currentThread);
-        int allActiveThreads = threadGroup.activeCount();
-        Thread[] allThreads = new Thread[allActiveThreads];
-        threadGroup.enumerate(allThreads);
-
-        for (Thread thread : allThreads) {
-            String name = "";
-            if (thread != null) {
-                name = thread.getName();
-            }
-            //logi("Current threads " + name);
-            if (name.equals(threadName)) {
-                logi("Found old module thread " + name);
-                return thread;
-            }
-        }
-
-        return null;
-    }
-
-    private ThreadGroup getRootThreadGroup(Thread thread) {
-        ThreadGroup rootGroup = thread.getThreadGroup();
-        while (rootGroup != null) {
-            ThreadGroup parentGroup = rootGroup.getParent();
-            if (parentGroup == null) {
-                break;
-            }
-            rootGroup = parentGroup;
-        }
-        return rootGroup;
     }
 
     private void clearTorLog() {

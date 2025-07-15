@@ -19,6 +19,8 @@
 
 package pan.alexander.cordova.torrunner.domain.core
 
+import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
+import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import java.io.*
 
 class ProcessStarter(private val libraryDir: String) {
@@ -38,6 +40,7 @@ class ProcessStarter(private val libraryDir: String) {
                 var line = bufferedReader.readLine()
                 while (line != null) {
                     stdout.add(line)
+                    logi(line)
                     line = bufferedReader.readLine()
                 }
             }
@@ -46,6 +49,7 @@ class ProcessStarter(private val libraryDir: String) {
                 var line = bufferedReader.readLine()
                 while (line != null) {
                     stderr.add(line)
+                    loge(line)
                     line = bufferedReader.readLine()
                 }
             }

@@ -52,6 +52,12 @@ class ConfigurationManager @Inject constructor(
 
     val torAssetsStream by lazy { context.assets.open("tor.mp3") }
 
+    val reverseProxyPath by lazy { "$nativeLibPath/libreverseproxy.so" }
+
+    val reverseProxyPidPath by lazy { "$appDataDir/reverse-proxy.pid" }
+
+    val reverseProxyDefaultPort = 8181
+
     fun updateCordovaConfiguration(configuration: JSONObject) {
         instance?.updateConfiguration(configuration)
     }

@@ -37,11 +37,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import pan.alexander.cordova.torrunner.framework.ActionSender;
 import pan.alexander.cordova.torrunner.framework.ConfigurationManager;
 import pan.alexander.cordova.torrunner.utils.file.FileManager;
 
+@Singleton
 public class Killer {
 
     private final ConfigurationManager configuration;
@@ -50,9 +52,11 @@ public class Killer {
 
     private final CoreStatus coreStatus;
 
-    private final ReentrantLock reentrantLock;
+    private final ReentrantLock torLock;
+    private final ReentrantLock reverseProxyLock;
 
     private static Thread torThread;
+    private static Thread reverseProxyThread;
 
     @Inject
     Killer(
@@ -65,7 +69,8 @@ public class Killer {
         this.actionSender = actionSender;
         this.fileManager = fileManager;
         this.coreStatus = coreStatus;
-        reentrantLock = new ReentrantLock();
+        torLock = new ReentrantLock();
+        reverseProxyLock = new ReentrantLock();
     }
 
     private void sendResultIntent() {
@@ -96,7 +101,7 @@ public class Killer {
                 coreStatus.setTorState(STOPPING);
             }
 
-            reentrantLock.lock();
+            torLock.lock();
 
             try {
                 String torPid = readPidFile(configuration.getTorPidPath());
@@ -138,7 +143,51 @@ public class Killer {
             } catch (Exception e) {
                 loge("Killer getTorKillerRunnable", e);
             } finally {
-                reentrantLock.unlock();
+                torLock.unlock();
+            }
+
+        };
+    }
+
+    void setReverseProxyThread(Thread thread) {
+        Killer.reverseProxyThread = thread;
+    }
+
+    Thread getReverseProxyThread() {
+        return reverseProxyThread;
+    }
+
+
+    public Runnable getReverseProxyKillerRunnable() {
+        return () -> {
+
+            reverseProxyLock.lock();
+
+            try {
+                String reverseProxyPid = readPidFile(configuration.getReverseProxyPidPath());
+
+                boolean result = doThreeAttemptsToStopModule(
+                        configuration.getReverseProxyPath(),
+                        reverseProxyPid,
+                        reverseProxyThread
+                );
+
+                if (!result && reverseProxyThread != null && reverseProxyThread.isAlive()) {
+                    logw("Killer cannot stop Reverse Proxy. Stop with interrupt thread!");
+                    makeDelay(5);
+                    stopModuleWithInterruptThread(reverseProxyThread);
+                } else if (!result) {
+                    logw("Killer cannot stop Reverse Proxy. Thread is null");
+                }
+
+                if (reverseProxyThread != null && reverseProxyThread.isAlive()) {
+                    loge("Killer cannot stop Reverse Proxy!");
+                }
+
+            } catch (Exception e) {
+                loge("Killer getTorKillerRunnable", e);
+            } finally {
+                reverseProxyLock.unlock();
             }
 
         };

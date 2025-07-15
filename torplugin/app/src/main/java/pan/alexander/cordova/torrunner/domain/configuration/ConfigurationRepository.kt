@@ -40,6 +40,7 @@ interface ConfigurationRepository {
     fun getTorGeoipPath(): String
     fun getTorGeoip6Path(): String
     fun getTorPidPath(): String
+    fun getTorDefaultSocksPort(): Int
     fun getTorAssetStream(): InputStream
 
     fun getTorConfiguration(): List<Pair<String, String>>
@@ -47,6 +48,11 @@ interface ConfigurationRepository {
         originalTorConf: List<Pair<String, String>>,
         newTorConf: List<Pair<String, String>>
     )
+
+    //Reverse Proxy
+    fun getReverseProxyPath(): String
+    fun getReverseProxyPidPath(): String
+    fun getReverseProxyDefaultPort(): Int
 
     //Cordova
     fun updateCordovaConfiguration(configuration: JSONObject)

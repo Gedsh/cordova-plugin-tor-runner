@@ -22,10 +22,17 @@ package pan.alexander.cordova.torrunner.framework
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import pan.alexander.cordova.torrunner.App
 import pan.alexander.cordova.torrunner.domain.core.CoreState
 import pan.alexander.cordova.torrunner.domain.core.CoreStatus
+import pan.alexander.cordova.torrunner.domain.core.ReverseProxyManager
 import pan.alexander.cordova.torrunner.domain.core.TorManager
+import pan.alexander.cordova.torrunner.domain.installer.Installer
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_RELOAD_TOR_CONFIGURATION
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_RESTART_TOR
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_START_TOR
@@ -34,14 +41,26 @@ import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import javax.inject.Inject
+import kotlin.coroutines.CoroutineContext
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 class CoreService : Service() {
 
     @Inject
     lateinit var torManager: TorManager
-
+    @Inject
+    lateinit var reverseProxyManager: ReverseProxyManager
     @Inject
     lateinit var coreStatus: CoreStatus
+    @Inject
+    lateinit var installer: Installer
+    @Inject
+    lateinit var coroutineContext: CoroutineContext
+
+    private val scope by lazy {
+        CoroutineScope(coroutineContext + CoroutineName("CoreService"))
+    }
 
     override fun onCreate() {
         App.Companion.instance.daggerComponent.inject(this)
@@ -57,8 +76,10 @@ class CoreService : Service() {
     override fun onDestroy() {
 
         if (coreStatus.torState != CoreState.STOPPED) {
-            stopTor()
+            stopTor().also { stopProxy() }
         }
+
+        scope.coroutineContext.cancelChildren()
 
         logi("Core Service stopped")
 
@@ -77,8 +98,8 @@ class CoreService : Service() {
         logi("Core service got action: $action")
 
         when (action) {
-            ACTION_START_TOR -> startTor()
-            ACTION_STOP_TOR -> stopTor()
+            ACTION_START_TOR -> startTor().also { startProxy() }
+            ACTION_STOP_TOR -> stopTor().also { stopProxy() }
             ACTION_RESTART_TOR -> restartTor()
             ACTION_RELOAD_TOR_CONFIGURATION -> reloadTorConfiguration()
             ACTION_STOP_SERVICE -> stopService()
@@ -92,7 +113,8 @@ class CoreService : Service() {
         return START_REDELIVER_INTENT
     }
 
-    private fun startTor() {
+    private fun startTor() = scope.launch {
+        waitWhileTorConfigurationInstalling()
         torManager.startTor()
     }
 
@@ -100,13 +122,32 @@ class CoreService : Service() {
         torManager.stopTor()
     }
 
-    private fun restartTor() {
+    private fun restartTor() = scope.launch {
+        waitWhileTorConfigurationInstalling()
         torManager.restartTor()
     }
 
-    private fun reloadTorConfiguration() {
+    private fun reloadTorConfiguration() = scope.launch {
+        waitWhileTorConfigurationInstalling()
         torManager.reloadTorConfiguration()
     }
+
+    private fun startProxy() {
+        reverseProxyManager.startProxy()
+    }
+
+    private fun stopProxy() {
+        reverseProxyManager.stopProxy()
+    }
+
+    private suspend fun waitWhileTorConfigurationInstalling() {
+        installer.installTorIfRequired()
+        while (isTorConfigurationInstalling()) {
+            delay(1.toDuration(DurationUnit.SECONDS))
+        }
+    }
+
+    private fun isTorConfigurationInstalling() = installer.installing.get()
 
     private fun stopService() {
         try {

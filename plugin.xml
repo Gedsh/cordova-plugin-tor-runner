@@ -38,6 +38,9 @@
         <source-file
                 src="torplugin/app/jniLibs/armeabi-v7a/libwebtunnel.so"
                 target-dir="jniLibs/armeabi-v7a" />
+        <source-file
+                src="torplugin/app/jniLibs/armeabi-v7a/libreverseproxy.so"
+                target-dir="jniLibs/armeabi-v7a" />
 
         <source-file
                 src="torplugin/app/jniLibs/arm64-v8a/libtor.so"
@@ -50,6 +53,9 @@
                 target-dir="jniLibs/arm64-v8a" />
         <source-file
                 src="torplugin/app/jniLibs/arm64-v8a/libwebtunnel.so"
+                target-dir="jniLibs/arm64-v8a" />
+        <source-file
+                src="torplugin/app/jniLibs/arm64-v8a/libreverseproxy.so"
                 target-dir="jniLibs/arm64-v8a" />
 
         <source-file
@@ -103,6 +109,12 @@
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/portchecker/PortChecker.java"
                 target-dir="java/pan/alexander/cordova/torrunner/utils/portchecker" />
         <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/thread/ThreadFinder.java"
+                target-dir="java/pan/alexander/cordova/torrunner/utils/thread" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/thread/ThreadDelay.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/utils/thread" />
+        <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/zip/ZipFileManager.java"
                 target-dir="java/pan/alexander/cordova/torrunner/utils/zip" />
 
@@ -139,6 +151,9 @@
                 target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/Restarter.java"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/ReverseProxyManager.java"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/ShellExitCode.java"

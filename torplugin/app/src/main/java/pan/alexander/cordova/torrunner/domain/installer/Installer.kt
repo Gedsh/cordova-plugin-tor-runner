@@ -26,11 +26,14 @@ import pan.alexander.cordova.torrunner.domain.core.CoreState
 import pan.alexander.cordova.torrunner.domain.core.CoreStatus
 import pan.alexander.cordova.torrunner.utils.file.FileManager
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
+import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import pan.alexander.cordova.torrunner.utils.zip.ZipFileManager
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class Installer @Inject constructor(
     private val configurationRepository: ConfigurationRepository,
     private val coreStatus: CoreStatus,
@@ -39,15 +42,15 @@ class Installer @Inject constructor(
 ) {
 
     @Volatile
-    private var installing = AtomicBoolean(false)
+    var installing = AtomicBoolean(false)
 
     @WorkerThread
     fun installTorIfRequired(): Boolean {
-        if (installing.compareAndSet(false, true)
-            && !configurationRepository.isTorConfigurationAvailable()
-        ) {
+        if (installing.compareAndSet(false, true)) {
             try {
-                return installTorConfiguration()
+                if (!configurationRepository.isTorConfigurationAvailable()) {
+                    return installTorConfiguration()
+                }
             } catch (e: Exception) {
                 loge("Installer installTorIfRequired", e)
                 return false
@@ -59,27 +62,44 @@ class Installer @Inject constructor(
     }
 
     @WorkerThread
-    fun reinstallTor(): Boolean =
-        try {
-            installTorConfiguration()
-        } catch (e: Exception) {
-            loge("Installer reinstallTor", e)
-            false
+    fun reinstallTor(): Boolean {
+        if (installing.compareAndSet(false, true)) {
+            try {
+                if (!configurationRepository.isTorConfigurationAvailable()) {
+                    return installTorConfiguration()
+                }
+            } catch (e: Exception) {
+                loge("Installer reinstallTor", e)
+                return false
+            } finally {
+                installing.set(false)
+            }
         }
+        return true
+    }
+
 
     private fun installTorConfiguration(): Boolean {
+        logi("Start adding Tor configuration")
         var success = removeInstallationDirs()
         if (success) {
+            logi("Old installation folders have been deleted")
             success = extractTorConfigurationFiles()
         }
         if (success) {
+            logi("Tor configuration files have been extracted")
             success = adjustTorConfigurationPaths()
         }
         if (success) {
+            logi("Tor paths have been adjusted")
             createLogsDir()
         }
-        if (!success) {
+        if (success) {
+            logi("Logs folder has been created")
+            logi("Configuring Tor is successful")
+        } else {
             coreStatus.torState == CoreState.FAULT
+            loge("Configuring Tor is failed")
         }
         return success
     }

@@ -79,6 +79,8 @@ class ConfigurationRepositoryImpl @Inject constructor(
 
     override fun getTorPidPath() = configurationManager.torPidPath
 
+    override fun getTorDefaultSocksPort() = configurationManager.torDefaultSocksPort
+
     override fun getTorAssetStream() = configurationManager.torAssetsStream
 
     override fun getTorConfiguration(): List<Pair<String, String>> {
@@ -136,6 +138,12 @@ class ConfigurationRepositoryImpl @Inject constructor(
             )
         }
     }
+
+    override fun getReverseProxyPath() = configurationManager.reverseProxyPath
+
+    override fun getReverseProxyPidPath() = configurationManager.reverseProxyPidPath
+
+    override fun getReverseProxyDefaultPort() = configurationManager.reverseProxyDefaultPort
 
     override fun updateCordovaConfiguration(configuration: JSONObject) =
         configurationManager.updateCordovaConfiguration(configuration)

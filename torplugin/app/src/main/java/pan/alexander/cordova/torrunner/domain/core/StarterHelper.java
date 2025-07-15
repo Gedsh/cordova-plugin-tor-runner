@@ -43,8 +43,8 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import pan.alexander.cordova.torrunner.App;
+import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository;
 import pan.alexander.cordova.torrunner.domain.installer.Installer;
-import pan.alexander.cordova.torrunner.framework.ConfigurationManager;
 import pan.alexander.cordova.torrunner.utils.file.FileManager;
 import pan.alexander.cordova.torrunner.utils.portchecker.PortChecker;
 
@@ -52,7 +52,7 @@ public class StarterHelper {
 
     private final CoreStatus coreStatus;
 
-    private final ConfigurationManager configuration;
+    private final ConfigurationRepository configuration;
     private final FileManager fileManager;
     private final PortChecker portChecker;
     private final Installer installer;
@@ -60,7 +60,7 @@ public class StarterHelper {
 
     @Inject
     public StarterHelper(
-            ConfigurationManager configuration,
+            ConfigurationRepository configuration,
             CoreStatus coreStatus,
             FileManager fileManager,
             PortChecker portChecker,
@@ -104,6 +104,8 @@ public class StarterHelper {
                 torCmdString += " -fake-hosts " + fakeHosts;
             }
 
+            logi("Tor is listening on port " + configuration.getTorSocksPort());
+
             shellResult = new ProcessStarter(configuration.getNativeLibPath())
                     .startProcess(torCmdString);
 
@@ -136,6 +138,40 @@ public class StarterHelper {
                     coreStatus.setTorState(STOPPED);
                     sendTorStoppedToJavaScript();
                 }
+
+            }
+
+            Thread.currentThread().interrupt();
+        };
+    }
+
+    Runnable getReverseProxyStarterRunnable() {
+        return () -> {
+
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+
+            String reverseProxyCmdString;
+            final CommandResult shellResult;
+
+            //checkProxyPortForBusyness(newLines); TODO
+
+            reverseProxyCmdString = configuration.getReverseProxyPath()
+                    + " -proxyport " + configuration.getReverseProxyDefaultPort()
+                    + " -sockport " + configuration.getTorSocksPort()
+                    + " -pidfile " + configuration.getReverseProxyPidPath();
+
+            shellResult = new ProcessStarter(configuration.getNativeLibPath())
+                    .startProcess(reverseProxyCmdString);
+
+
+            if (shellResult.isSuccessful()) {
+                logi("Reverse proxy stopped");
+            } else {
+
+                loge("Error Reverse-proxy: " + shellResult.exitCode
+                        + " ERR=" + shellResult.getStderr() + " OUT=" + shellResult.getStdout());
+
+                logNativeCrash();
 
             }
 

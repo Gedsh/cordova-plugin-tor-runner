@@ -32,8 +32,12 @@ import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_START
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_TOR
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
+import java.util.concurrent.locks.ReentrantLock
 import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.concurrent.withLock
 
+@Singleton
 class TorPluginManager @Inject constructor(
     private val actionSender: ActionSender,
     private val installer: Installer,
@@ -41,19 +45,25 @@ class TorPluginManager @Inject constructor(
     private val coreStatus: CoreStatus
 ) {
 
+    private val startTorLock by lazy { ReentrantLock() }
+    private val stopTorLock by lazy { ReentrantLock() }
+    private val torConfigurationLock by lazy { ReentrantLock() }
+
     private var settingsCallback: CallbackContext? = null
 
     fun startTor(
         cordova: CordovaInterface?,
         callbackContext: CallbackContext?
     ) = runOnBackgroundThread(cordova, callbackContext) {
-        if (coreStatus.torState == CoreState.STOPPED) {
-            actionSender.sendIntent(ACTION_START_TOR)
-        }
-        if (coreStatus.torState == CoreState.FAULT) {
-            callbackContext?.error("Start Tor failed")
-        } else {
-            callbackContext?.success()
+        startTorLock.withLock {
+            if (coreStatus.torState == CoreState.STOPPED) {
+                actionSender.sendIntent(ACTION_START_TOR)
+            }
+            if (coreStatus.torState == CoreState.FAULT) {
+                callbackContext?.error("Start Tor failed")
+            } else {
+                callbackContext?.success()
+            }
         }
     }?.let {
         loge("TorManager startTor", it, true)
@@ -64,22 +74,27 @@ class TorPluginManager @Inject constructor(
         cordova: CordovaInterface?,
         callbackContext: CallbackContext?
     ) = runOnBackgroundThread(cordova, callbackContext) {
-        if (coreStatus.torState == CoreState.RUNNING || coreStatus.torState == CoreState.FAULT) {
-            actionSender.sendIntent(ACTION_STOP_TOR)
+        stopTorLock.withLock {
+            if (coreStatus.torState == CoreState.RUNNING || coreStatus.torState == CoreState.FAULT) {
+                actionSender.sendIntent(ACTION_STOP_TOR)
+            }
+            callbackContext?.success()
         }
-        callbackContext?.success()
     }?.let {
         loge("TorManager stopTor", it, true)
         throw it
     }
 
+    //Called each time the app is started
     fun getConfiguration(
         cordova: CordovaInterface?,
         callbackContext: CallbackContext?
     ) = runOnBackgroundThread(cordova, callbackContext) {
-        installTorIfRequired()
-        val configuration = configuration.getTorConfigurationForCordova()
-        updatePluginConfiguration(callbackContext, configuration)
+        torConfigurationLock.withLock {
+            installTorIfRequired()
+            val configuration = configuration.getTorConfigurationForCordova()
+            updatePluginConfiguration(callbackContext, configuration)
+        }
     }?.let {
         loge("TorManager getConfiguration", it, true)
         throw it
@@ -90,13 +105,15 @@ class TorPluginManager @Inject constructor(
         options: JSONObject?,
         callbackContext: CallbackContext?
     ) = runOnBackgroundThread(cordova, callbackContext) {
-        if (options != null) {
-            configuration.saveTorConfigurationFromCordova(options)
-            val configuration = configuration.getTorConfigurationForCordova()
-            updatePluginConfiguration(configuration)
-            callbackContext?.success()
-        } else {
-            callbackContext?.error("Unable to update undefined configuration")
+        torConfigurationLock.withLock {
+            if (options != null) {
+                configuration.saveTorConfigurationFromCordova(options)
+                val configuration = configuration.getTorConfigurationForCordova()
+                updatePluginConfiguration(configuration)
+                callbackContext?.success()
+            } else {
+                callbackContext?.error("Unable to update undefined configuration")
+            }
         }
     }?.let {
         loge("TorManager setConfiguration", it, true)
@@ -118,7 +135,7 @@ class TorPluginManager @Inject constructor(
         //TODO
         logi(address.toString())
         val redirect = true
-        if (redirect && coreStatus.torState == CoreState.STOPPED) {
+        if (redirect && coreStatus.torState == CoreState.STOPPED && !startTorLock.isLocked) {
             actionSender.sendIntent(ACTION_START_TOR)
         }
         if (coreStatus.torState == CoreState.FAULT) {
@@ -148,10 +165,12 @@ class TorPluginManager @Inject constructor(
     }
 
     fun updatePluginConfiguration(configuration: JSONObject) {
-        val result = PluginResult(PluginResult.Status.OK, configuration).apply {
-            keepCallback = true
+        torConfigurationLock.withLock {
+            val result = PluginResult(PluginResult.Status.OK, configuration).apply {
+                keepCallback = true
+            }
+            settingsCallback?.sendPluginResult(result)
         }
-        settingsCallback?.sendPluginResult(result)
     }
 
     private fun installTorIfRequired(): Boolean =
