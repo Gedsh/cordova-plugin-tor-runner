@@ -24,7 +24,33 @@
         <clobbers target="cordova.plugins.torRunner" />
     </js-module>
 
+    <preference name="KSP_VERSION" default="'2.1.0-1.0.29'" />
+    <preference name="ANDROID_DAGGER_VERSION" default="2.55" />
+    <preference name="KOTLINX_COROUTINES_VERSION" default="1.10.2" />
+    <preference name="LIFECYCLE_PROCESS_VERSION" default="2.9.1" />
+    <preference name="ANDROID_SHELL_VERSION" default="1.0.1" />
+    <preference name="OK_HTTP_VERSION" default="5.1.0" />
+    <preference name="ANDROID_PREFERENCES_VERSION" default="1.2.1" />
+
     <platform name="android">
+
+        <config-file target="config.xml" parent="/*">
+            <preference name="GradlePluginKotlinEnabled" value="true" />
+            <preference name="GradlePluginKotlinVersion" value="2.1.0" />
+            <feature name="TorRunner">
+                <param name="android-package" value="pan.alexander.cordova.torrunner.plugin.Plugin"/>
+                <param name="onload" value="true" />
+            </feature>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <service
+                    android:name="pan.alexander.cordova.torrunner.framework.CoreService"
+                    android:exported="false">
+            </service>
+        </config-file>
+
+        <hook src="hooks/afterPrepareHook.js" type="after_prepare"/>
 
         <source-file
                 src="torplugin/app/jniLibs/armeabi-v7a/libtor.so"
@@ -184,30 +210,6 @@
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/preferences/PreferenceRepositoryImpl.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/data/preferences" />
-
-
-        <config-file target="config.xml" parent="/*">
-            <preference name="GradlePluginKotlinEnabled" value="true" />
-            <preference name="GradlePluginKotlinVersion" value="1.9.24" />
-            <feature name="TorRunner">
-                <param name="android-package" value="pan.alexander.cordova.torrunner.plugin.Plugin"/>
-                <param name="onload" value="true" />
-            </feature>
-        </config-file>
-
-        <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <service
-                    android:name="pan.alexander.cordova.torrunner.framework.CoreService"
-                    android:exported="false">
-            </service>
-        </config-file>
-
-        <preference name="ANDROID_DAGGER_VERSION" default="2.55" />
-        <preference name="KOTLINX_COROUTINES_VERSION" default="1.9.0" />
-        <preference name="LIFECYCLE_PROCESS_VERSION" default="2.9.1" />
-        <preference name="ANDROID_SHELL_VERSION" default="1.0.1" />
-        <preference name="OK_HTTP_VERSION" default="4.12.0" />
-        <preference name="ANDROID_PREFERENCES_VERSION" default="1.2.1" />
 
         <framework src="com.google.dagger:dagger:$ANDROID_DAGGER_VERSION" />
         <framework src="org.jetbrains.kotlinx:kotlinx-coroutines-android:$KOTLINX_COROUTINES_VERSION" />

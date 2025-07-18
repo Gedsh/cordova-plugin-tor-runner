@@ -1,6 +1,6 @@
 [versions]
 agp = "8.10.1"
-kotlin = "2.0.20"
+kotlin = "2.1.0"
 coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -8,13 +8,14 @@ espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.9.1"
 appcompat = "1.7.1"
 activityCompose = "1.10.1"
-composeBom = "2025.06.00"
-cordova = "10.1.2"
+composeBom = "2025.06.01"
+cordova = "14.0.1"
 dagger = "2.55"
-coroutines = "1.9.0"
+coroutines = "1.10.2"
 shell = "1.0.1"
-okhttp = "4.12.0"
+okhttp = "5.1.0"
 preferences = "1.2.1"
+kspVersion = "2.1.0-1.0.29"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -61,5 +62,5 @@ androidx-preferences = { group = "androidx.preference", name = "preference-ktx",
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kapt = { id = "kotlin-kapt" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "kspVersion" }
 

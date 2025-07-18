@@ -1,9 +1,3 @@
-apply plugin: 'kotlin-kapt'
-
-buildscript {
-    ext.dagger_version = '2.55'
-}
-
 android {
 
     sourceSets {
@@ -14,15 +8,12 @@ android {
 
     packagingOptions {
         jniLibs.useLegacyPackaging = true
+        doNotStrip '*/*/libreverseproxy.so'
+        doNotStrip '*/*/libtor.so'
         doNotStrip '*/*/libobfs4proxy.so'
         doNotStrip '*/*/libsnowflake.so'
         doNotStrip '*/*/libwebtunnel.so'
     }
-}
-
-
-dependencies {
-    kapt "com.google.dagger:dagger-compiler:$dagger_version"
 }
 
 allprojects {
