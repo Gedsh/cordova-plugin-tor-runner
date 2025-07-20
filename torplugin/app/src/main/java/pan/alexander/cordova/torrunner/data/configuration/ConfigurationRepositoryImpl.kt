@@ -311,7 +311,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
             TorMode.valueOf(torMode)
         } catch (e: IllegalArgumentException) {
             loge("TorPluginManager setTorMode", e)
-            TorMode.AUTO
+            TorMode.UNDEFINED
         }
         preferences.setTorMode(mode)
     }

@@ -34,8 +34,8 @@ class PreferenceRepositoryImpl @Inject constructor(
         TorMode.valueOf(
             preferences.getString(
                 TOR_MODE,
-                TorMode.AUTO.name
-            ) ?: TorMode.AUTO.name
+                TorMode.UNDEFINED.name
+            ) ?: TorMode.UNDEFINED.name
         )
 
     override fun setTorMode(mode: TorMode) =

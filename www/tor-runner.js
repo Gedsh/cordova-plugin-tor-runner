@@ -16,6 +16,8 @@ exports.isUseWithTor = function(address, success, error) {
             exec(null, error, 'TorRunner', 'STOP_TOR', []);
         }
         success({redirect: false, port: 0});
+    } else {
+        error("Please specify the Tor mode " + settings.torMode);
     }
 };
 
@@ -49,6 +51,7 @@ exports.Bridge = {
 };
 
 exports.TorMode = {
+    UNDEFINED: 'UNDEFINED',
     NEVER:  "NEVER",
     ALWAYS: "ALWAYS",
     AUTO:   "AUTO"
@@ -65,7 +68,7 @@ exports._settings = {
 };
 
 exports._defaults = {
-    torMode:    exports.TorMode.AUTO,
+    torMode:    exports.TorMode.UNDEFINED,
     torPort:    9051,
     bridgeType: exports.Bridge.SNOWFLAKE
 };

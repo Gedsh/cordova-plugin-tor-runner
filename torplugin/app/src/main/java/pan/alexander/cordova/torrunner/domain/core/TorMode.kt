@@ -20,6 +20,7 @@
 package pan.alexander.cordova.torrunner.domain.core
 
 enum class TorMode {
+    UNDEFINED,
     NEVER,
     ALWAYS,
     AUTO
