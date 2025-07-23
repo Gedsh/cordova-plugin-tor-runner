@@ -39,7 +39,7 @@ class AppManager @Inject constructor(
     }
 
     fun onActivityResumed() {
-        startTor()
+
     }
 
     fun onActivityDestroyed() {
