@@ -23,15 +23,18 @@ import org.apache.cordova.CallbackContext
 import org.apache.cordova.CordovaInterface
 import org.apache.cordova.PluginResult
 import org.json.JSONObject
+import pan.alexander.cordova.torrunner.domain.addresschecker.AddressCheckerRepository
+import pan.alexander.cordova.torrunner.domain.addresschecker.DomainToPort
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.core.CoreState
 import pan.alexander.cordova.torrunner.domain.core.CoreStatus
+import pan.alexander.cordova.torrunner.domain.core.TorMode
 import pan.alexander.cordova.torrunner.domain.installer.Installer
 import pan.alexander.cordova.torrunner.framework.ActionSender
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_START_TOR
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_TOR
+import pan.alexander.cordova.torrunner.utils.Constants.MAX_PORT_NUMBER
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
-import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import java.util.concurrent.locks.ReentrantLock
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -42,12 +45,15 @@ class TorPluginManager @Inject constructor(
     private val actionSender: ActionSender,
     private val installer: Installer,
     private val configuration: ConfigurationRepository,
-    private val coreStatus: CoreStatus
+    private val coreStatus: CoreStatus,
+    private val addressChecker: AddressCheckerRepository
 ) {
 
     private val startTorLock by lazy { ReentrantLock() }
     private val stopTorLock by lazy { ReentrantLock() }
     private val torConfigurationLock by lazy { ReentrantLock() }
+
+    private val portRegex by lazy { Regex("\\d{2,5}") }
 
     private var settingsCallback: CallbackContext? = null
 
@@ -55,6 +61,13 @@ class TorPluginManager @Inject constructor(
         cordova: CordovaInterface?,
         callbackContext: CallbackContext?
     ) = runOnBackgroundThread(cordova, callbackContext) {
+        startTor(callbackContext)
+    }?.let {
+        loge("TorManager startTor", it, true)
+        throw it
+    }
+
+    private fun startTor(callbackContext: CallbackContext? = null) {
         startTorLock.withLock {
             if (coreStatus.torState == CoreState.STOPPED) {
                 actionSender.sendIntent(ACTION_START_TOR)
@@ -65,24 +78,25 @@ class TorPluginManager @Inject constructor(
                 callbackContext?.success()
             }
         }
-    }?.let {
-        loge("TorManager startTor", it, true)
-        throw it
     }
 
     fun stopTor(
         cordova: CordovaInterface?,
         callbackContext: CallbackContext?
     ) = runOnBackgroundThread(cordova, callbackContext) {
+        stopTor(callbackContext)
+    }?.let {
+        loge("TorManager stopTor", it, true)
+        throw it
+    }
+
+    private fun stopTor(callbackContext: CallbackContext? = null) {
         stopTorLock.withLock {
             if (coreStatus.torState == CoreState.RUNNING || coreStatus.torState == CoreState.FAULT) {
                 actionSender.sendIntent(ACTION_STOP_TOR)
             }
             callbackContext?.success()
         }
-    }?.let {
-        loge("TorManager stopTor", it, true)
-        throw it
     }
 
     //Called each time the app is started
@@ -110,6 +124,15 @@ class TorPluginManager @Inject constructor(
                 configuration.saveTorConfigurationFromCordova(options)
                 val configuration = configuration.getTorConfigurationForCordova()
                 updatePluginConfiguration(configuration)
+                if (options.has("torMode")) {
+                    val mode = try {
+                        TorMode.valueOf(options.getString("torMode"))
+                    } catch (e: IllegalArgumentException) {
+                        loge("TorPluginManager setConfiguration", e)
+                        TorMode.UNDEFINED
+                    }
+                    manageTor(mode)
+                }
                 callbackContext?.success()
             } else {
                 callbackContext?.error("Unable to update undefined configuration")
@@ -118,6 +141,14 @@ class TorPluginManager @Inject constructor(
     }?.let {
         loge("TorManager setConfiguration", it, true)
         throw it
+    }
+
+    private fun manageTor(mode: TorMode) {
+        if (mode == TorMode.ALWAYS && coreStatus.torState == CoreState.STOPPED) {
+            startTor()
+        } else if (mode == TorMode.NEVER && coreStatus.torState == CoreState.RUNNING) {
+            stopTor()
+        }
     }
 
     fun checkAddress(
@@ -129,25 +160,39 @@ class TorPluginManager @Inject constructor(
             callbackContext?.error("Unable to check undefined address")
             return@runOnBackgroundThread
         }
-        val domain = address.takeIf {
+        val domainToPort = address.takeIf {
             it.has("address")
         }?.getString("address")
-        //TODO
-        logi(address.toString())
-        val redirect = true
-        if (redirect && coreStatus.torState == CoreState.STOPPED && !startTorLock.isLocked) {
-            actionSender.sendIntent(ACTION_START_TOR)
+            ?.removePrefix("https://")
+            ?.substringBefore("/")
+            ?.let {
+                val port = it.substringAfter(":", "443")
+                    .takeIf { port ->
+                        port.matches(portRegex)
+                    }?.toLong()
+                    ?.takeIf { port -> port <= MAX_PORT_NUMBER }
+                    ?.toInt()
+                    ?: 443
+                val domain = it.substringBefore(":")
+                DomainToPort(domain, port)
+            }
+        val redirect = domainToPort?.let {
+            !addressChecker.isAddressReachable(domainToPort)
+        } ?: false
+        if (redirect && coreStatus.torState == CoreState.STOPPED) {
+            startTor()
         }
-        if (coreStatus.torState == CoreState.FAULT) {
+        //TODO check if network is available
+        if (coreStatus.isTorReady) {
             val result = JSONObject().apply {
-                put("redirect", false)
-                put("port", 0)
+                put("redirect", redirect)
+                put("port", configuration.getTorSocksPort())
             }
             callbackContext?.success(result)
         } else {
             val result = JSONObject().apply {
-                put("redirect", redirect)
-                put("port", configuration.getTorSocksPort())
+                put("redirect", false)
+                put("port", 0)
             }
             callbackContext?.success(result)
         }
@@ -184,7 +229,7 @@ class TorPluginManager @Inject constructor(
         var exception: Exception? = null
         cordova?.threadPool?.execute {
             try {
-                synchronized(this, action)
+                action()
             } catch (e: Exception) {
                 exception = e
                 callbackContext?.error(e.toString())

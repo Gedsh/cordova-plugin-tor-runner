@@ -126,6 +126,9 @@
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/Constants.java"
                 target-dir="java/pan/alexander/cordova/torrunner/utils" />
         <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/addresschecker/AddressChecker.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/utils/addresschecker" />
+        <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/file/FileManager.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/utils/file" />
         <source-file
@@ -157,6 +160,15 @@
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/AppManager.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/domain" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/addresschecker/AddressCheckerRepository.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/addresschecker" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/addresschecker/DomainToPort.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/addresschecker" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/addresschecker/TimeToReachable.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/addresschecker" />
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/configuration/ConfigurationRepository.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/configuration" />
@@ -204,6 +216,9 @@
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/preferences/PreferenceKeys.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/preferences" />
 
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/addresschecker/AddressCheckerRepositoryImpl.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/data/addresschecker" />
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/configuration/ConfigurationRepositoryImpl.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/data/configuration" />

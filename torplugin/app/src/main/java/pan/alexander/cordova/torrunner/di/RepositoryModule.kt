@@ -21,8 +21,10 @@ package pan.alexander.cordova.torrunner.di
 
 import dagger.Binds
 import dagger.Module
+import pan.alexander.cordova.torrunner.data.addresschecker.AddressCheckerRepositoryImpl
 import pan.alexander.cordova.torrunner.data.configuration.ConfigurationRepositoryImpl
 import pan.alexander.cordova.torrunner.data.preferences.PreferenceRepositoryImpl
+import pan.alexander.cordova.torrunner.domain.addresschecker.AddressCheckerRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 
@@ -38,4 +40,9 @@ abstract class RepositoryModule {
     abstract fun bindPreferenceRepository(
         repository: PreferenceRepositoryImpl
     ): PreferenceRepository
+
+    @Binds
+    abstract fun bindAddressCheckerRepository(
+        repositoryImpl: AddressCheckerRepositoryImpl
+    ): AddressCheckerRepository
 }
