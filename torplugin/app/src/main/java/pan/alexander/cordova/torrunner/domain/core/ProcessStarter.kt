@@ -25,6 +25,8 @@ import java.io.*
 
 class ProcessStarter(private val libraryDir: String) {
 
+    var stdOutputListener: OnStdOutputListener? = null
+
     fun startProcess(startCommand: String): CommandResult {
 
         val stdout = mutableListOf<String>()
@@ -40,6 +42,7 @@ class ProcessStarter(private val libraryDir: String) {
                 var line = bufferedReader.readLine()
                 while (line != null) {
                     stdout.add(line)
+                    stdOutputListener?.onStdOutput(line)
                     logi(line)
                     line = bufferedReader.readLine()
                 }
@@ -80,5 +83,9 @@ class ProcessStarter(private val libraryDir: String) {
         }
 
         return CommandResult(stdout, stderr, exitCode)
+    }
+
+    interface OnStdOutputListener {
+        fun onStdOutput(stdout: String)
     }
 }

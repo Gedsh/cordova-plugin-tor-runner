@@ -23,7 +23,6 @@ import static pan.alexander.cordova.torrunner.domain.core.CoreState.RESTARTING;
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.RUNNING;
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.STARTING;
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.STOPPED;
-import static pan.alexander.cordova.torrunner.domain.core.CoreState.UNDEFINED;
 import static pan.alexander.cordova.torrunner.utils.logger.Logger.loge;
 import static pan.alexander.cordova.torrunner.utils.logger.Logger.logi;
 
@@ -64,13 +63,16 @@ public final class CoreStatus {
 
     public void setTorReady(boolean torReady) {
         this.torReady = torReady;
+        updateCordovaConfiguration();
     }
 
     private void updateCordovaConfiguration() {
         try {
-            if (torState == STOPPED || torState == STARTING || torState == RUNNING) {
+            if (torState == STOPPED || torState == STARTING) {
                 setTorStatus(torState);
-            } else if (torState == RESTARTING) {
+            } else if (torState == RUNNING && isTorReady()) {
+                setTorStatus(RUNNING);
+            } else if (torState == RUNNING || torState == RESTARTING) {
                 setTorStatus(STARTING);
             } else {
                 setTorStatus(STOPPED);

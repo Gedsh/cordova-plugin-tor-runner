@@ -30,6 +30,8 @@ import static pan.alexander.cordova.torrunner.utils.logger.Logger.logw;
 
 import android.text.TextUtils;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
@@ -48,7 +50,7 @@ import pan.alexander.cordova.torrunner.domain.installer.Installer;
 import pan.alexander.cordova.torrunner.utils.file.FileManager;
 import pan.alexander.cordova.torrunner.utils.portchecker.PortChecker;
 
-public class StarterHelper {
+public class StarterHelper implements ProcessStarter.OnStdOutputListener {
 
     private final CoreStatus coreStatus;
 
@@ -57,7 +59,6 @@ public class StarterHelper {
     private final PortChecker portChecker;
     private final Installer installer;
     private final Restarter restarter;
-
     @Inject
     public StarterHelper(
             ConfigurationRepository configuration,
@@ -106,9 +107,11 @@ public class StarterHelper {
 
             logi("Tor is listening on port " + configuration.getTorSocksPort());
 
-            shellResult = new ProcessStarter(configuration.getNativeLibPath())
-                    .startProcess(torCmdString);
+            ProcessStarter starter = new ProcessStarter(configuration.getNativeLibPath());
+            starter.setStdOutputListener(this);
+            shellResult = starter.startProcess(torCmdString);
 
+            coreStatus.setTorReady(false);
 
             if (shellResult.isSuccessful()) {
                 if (coreStatus.getTorState() == RUNNING) {
@@ -291,5 +294,12 @@ public class StarterHelper {
 
     private void sendTorStoppedToJavaScript() {
         //TODO
+    }
+
+    @Override
+    public void onStdOutput(@NotNull String stdout) {
+        if(stdout.endsWith("Bootstrapped 100% (done): Done")) {
+            coreStatus.setTorReady(true);
+        }
     }
 }
