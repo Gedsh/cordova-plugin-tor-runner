@@ -36,11 +36,11 @@ class ConfigurationManager @Inject constructor(
     val logsDir by lazy { "$appDataDir/logs" }
     val torLogPath by lazy { "$logsDir/Tor.log" }
 
-    val nativeLibPath: String by lazy { context.applicationInfo.nativeLibraryDir }
-    val torPath by lazy { "$nativeLibPath/libtor.so" }
-    val obfsPath by lazy { "$nativeLibPath/libobfs4proxy.so" }
-    val snowflakePath by lazy { "$nativeLibPath/libsnowflake.so" }
-    val webTunnelPath by lazy { "$nativeLibPath/libwebtunnel.so" }
+    val nativeLibPath: String = context.applicationInfo.nativeLibraryDir
+    val torPath = "$nativeLibPath/libtor.so"
+    val obfsPath = "$nativeLibPath/libobfs4proxy.so"
+    val snowflakePath = "$nativeLibPath/libsnowflake.so"
+    val webTunnelPath = "$nativeLibPath/libwebtunnel.so"
 
     val torDefaultSocksPort = 9051
 
@@ -52,7 +52,7 @@ class ConfigurationManager @Inject constructor(
 
     val torAssetsStream by lazy { context.assets.open("tor.mp3") }
 
-    val reverseProxyPath by lazy { "$nativeLibPath/libreverseproxy.so" }
+    val reverseProxyPath = "$nativeLibPath/libreverseproxy.so"
 
     val reverseProxyPidPath by lazy { "$appDataDir/reverse-proxy.pid" }
 

@@ -188,17 +188,14 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             String newLine = line;
             if (line.contains("ClientTransportPlugin ") && line.contains("/libobfs4proxy.so")) {
                 newLine = line.replaceAll("/.+?/libobfs4proxy.so", configuration.getObfsPath());
-
             } else if (line.contains("ClientTransportPlugin ") && line.contains("/libsnowflake.so")) {
                 newLine = line.replaceAll("/.+?/libsnowflake.so", configuration.getSnowflakePath());
-                lines.set(i, line);
             } else if (line.contains("ClientTransportPlugin ") && line.contains("/libwebtunnel.so")) {
                 newLine = line.replaceAll("/.+?/libwebtunnel.so", configuration.getWebTunnelPath());
-                lines.set(i, line);
             }
             if (!newLine.equals(line)) {
-                lines.set(i, line);
-                logi("ModulesStarterHelper Tor obfs module path is corrected");
+                lines.set(i, newLine);
+                logi("StarterHelper Tor obfs module path is corrected");
             }
         }
     }
