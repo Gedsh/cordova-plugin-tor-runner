@@ -23,7 +23,9 @@ import org.json.JSONObject
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.core.TorMode
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
+import pan.alexander.cordova.torrunner.framework.ActionSender
 import pan.alexander.cordova.torrunner.framework.ConfigurationManager
+import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_RESTART_TOR
 import pan.alexander.cordova.torrunner.utils.Constants.MAX_PORT_NUMBER
 import pan.alexander.cordova.torrunner.utils.file.FileManager
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
@@ -37,7 +39,8 @@ import kotlin.text.toInt
 class ConfigurationRepositoryImpl @Inject constructor(
     private val configurationManager: ConfigurationManager,
     private val preferences: PreferenceRepository,
-    private val fileManager: FileManager
+    private val fileManager: FileManager,
+    private val actionSender: ActionSender
 ) : ConfigurationRepository {
 
     private val numberRegex by lazy { Regex("\\d{1,5}") }
@@ -136,6 +139,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
                     }
                 }
             )
+            actionSender.sendIntent(ACTION_RESTART_TOR)
         }
     }
 
