@@ -65,6 +65,10 @@ public class ReverseProxyManager {
 
     public void startProxy() {
 
+        if (lock.isLocked()) {
+            return;
+        }
+
         new Thread(() -> {
 
             if (!lock.tryLock()) {

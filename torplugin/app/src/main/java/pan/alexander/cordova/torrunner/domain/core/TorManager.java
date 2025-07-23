@@ -74,6 +74,10 @@ public class TorManager {
 
     public void startTor() {
 
+        if (lock.isLocked()) {
+            return;
+        }
+
         new Thread(() -> {
 
             if (!lock.tryLock()) {
@@ -192,11 +196,16 @@ public class TorManager {
 
     public void reloadTorConfiguration() {
 
-        if (coreStatus.getTorState() != RUNNING) {
+        if (coreStatus.getTorState() != RUNNING || lock.isLocked()) {
             return;
         }
 
         new Thread(() -> {
+
+            if (!lock.tryLock()) {
+                return;
+            }
+
             try {
 
                 restarter.getTorRestarterRunnable().run();
@@ -205,17 +214,26 @@ public class TorManager {
 
             } catch (Exception e) {
                 loge("TorManager restartTor", e);
+            } finally {
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
+                }
             }
 
         }).start();
     }
 
     public void restartTor() {
-        if (coreStatus.getTorState() != RUNNING) {
+        if (coreStatus.getTorState() != RUNNING || lock.isLocked()) {
             return;
         }
 
         new Thread(() -> {
+
+            if (!lock.tryLock()) {
+                return;
+            }
+
             try {
                 coreStatus.setTorState(RESTARTING);
 
@@ -229,12 +247,17 @@ public class TorManager {
                 makeDelay(5);
 
                 if (coreStatus.getTorState() != RUNNING) {
+                    lock.unlock();
                     startTor();
                     checkInternetConnection();
                 }
 
             } catch (InterruptedException e) {
                 loge("TorManager restartTorFull join interrupted!", e);
+            } finally {
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
+                }
             }
 
         }).start();
