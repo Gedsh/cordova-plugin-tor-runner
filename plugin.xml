@@ -135,6 +135,9 @@
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/logger/Logger.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/utils/logger" />
         <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/network/NetworkChecker.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/utils/network" />
+        <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/portchecker/PortChecker.java"
                 target-dir="java/pan/alexander/cordova/torrunner/utils/portchecker" />
         <source-file

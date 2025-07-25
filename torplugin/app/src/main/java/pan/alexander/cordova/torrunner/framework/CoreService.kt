@@ -40,6 +40,7 @@ import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_TOR
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
+import pan.alexander.cordova.torrunner.utils.network.NetworkChecker
 import javax.inject.Inject
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.DurationUnit
@@ -98,7 +99,13 @@ class CoreService : Service() {
         logi("Core service got action: $action")
 
         when (action) {
-            ACTION_START_TOR -> startTor().also { startProxy() }
+            ACTION_START_TOR -> {
+                if (NetworkChecker.isNetworkAvailable(this)) {
+                    startTor().also { startProxy() }
+                } else {
+                    logi("But the network is unavailable")
+                }
+            }
             ACTION_STOP_TOR -> stopTor().also { stopProxy() }
             ACTION_RESTART_TOR -> restartTor()
             ACTION_RELOAD_TOR_CONFIGURATION -> reloadTorConfiguration()

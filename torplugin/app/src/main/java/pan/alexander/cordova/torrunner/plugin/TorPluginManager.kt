@@ -179,10 +179,11 @@ class TorPluginManager @Inject constructor(
         val redirect = domainToPort?.let {
             !addressChecker.isAddressReachable(domainToPort)
         } ?: false
+
         if (redirect && coreStatus.torState == CoreState.STOPPED) {
             startTor()
         }
-        //TODO check if network is available
+
         if (coreStatus.isTorReady) {
             val result = JSONObject().apply {
                 put("redirect", redirect)
