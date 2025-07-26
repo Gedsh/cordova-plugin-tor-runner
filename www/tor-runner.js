@@ -28,7 +28,7 @@ exports.getSettings = function()
 
 exports.configure = function (options)
 {
-    const settings = { ...options };
+    const settings = Object.assign({}, options);
 
     if (!this._isAndroid)
         return;
