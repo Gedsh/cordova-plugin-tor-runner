@@ -23,6 +23,7 @@ import static pan.alexander.cordova.torrunner.domain.core.CoreState.RESTARTING;
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.RUNNING;
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.STOPPED;
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.STOPPING;
+import static pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_TOR;
 import static pan.alexander.cordova.torrunner.utils.Constants.NUMBER_REGEX;
 import static pan.alexander.cordova.torrunner.utils.logger.Logger.loge;
 import static pan.alexander.cordova.torrunner.utils.logger.Logger.logi;
@@ -47,6 +48,7 @@ import javax.inject.Inject;
 import pan.alexander.cordova.torrunner.App;
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository;
 import pan.alexander.cordova.torrunner.domain.installer.Installer;
+import pan.alexander.cordova.torrunner.framework.ActionSender;
 import pan.alexander.cordova.torrunner.utils.file.FileManager;
 import pan.alexander.cordova.torrunner.utils.portchecker.PortChecker;
 
@@ -59,6 +61,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
     private final PortChecker portChecker;
     private final Installer installer;
     private final Restarter restarter;
+    private final ActionSender actionSender;
     @Inject
     public StarterHelper(
             ConfigurationRepository configuration,
@@ -66,7 +69,8 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             FileManager fileManager,
             PortChecker portChecker,
             Installer installer,
-            Restarter restarter
+            Restarter restarter,
+            ActionSender actionSender
     ) {
         this.configuration = configuration;
         this.coreStatus = coreStatus;
@@ -74,6 +78,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
         this.portChecker = portChecker;
         this.installer = installer;
         this.restarter = restarter;
+        this.actionSender = actionSender;
     }
 
     Runnable getTorStarterRunnable() {
@@ -111,8 +116,6 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             starter.setStdOutputListener(this);
             shellResult = starter.startProcess(torCmdString);
 
-            coreStatus.setTorReady(false);
-
             if (shellResult.isSuccessful()) {
                 if (coreStatus.getTorState() == RUNNING) {
                     coreStatus.setTorState(STOPPED);
@@ -143,6 +146,8 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
                 }
 
             }
+
+            coreStatus.setTorReady(false);
 
             Thread.currentThread().interrupt();
         };
@@ -175,6 +180,10 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
                         + " ERR=" + shellResult.getStderr() + " OUT=" + shellResult.getStdout());
 
                 logNativeCrash();
+
+                if (coreStatus.getTorState() == RUNNING) {
+                    actionSender.sendIntent(ACTION_STOP_TOR);
+                }
 
             }
 

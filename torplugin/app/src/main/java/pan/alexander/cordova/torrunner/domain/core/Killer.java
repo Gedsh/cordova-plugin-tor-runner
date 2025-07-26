@@ -97,6 +97,10 @@ public class Killer {
     public Runnable getTorKillerRunnable() {
         return () -> {
 
+            if (coreStatus.getTorState() == STOPPING) {
+                return;
+            }
+
             if (coreStatus.getTorState() != RESTARTING) {
                 coreStatus.setTorState(STOPPING);
             }

@@ -37,12 +37,10 @@ class ActionSender @Inject constructor(
             intent.action = action
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                if (App.Companion.instance.isAppForeground) {
-                    try {
-                        context.startService(intent)
-                    } catch (e: Exception) {
-                        loge("ActionSender sendIntent with action $action", e)
-                    }
+                try {
+                    context.startService(intent)
+                } catch (e: Exception) {
+                    loge("ActionSender sendIntent with action $action", e)
                 }
             } else {
                 context.startService(intent)
