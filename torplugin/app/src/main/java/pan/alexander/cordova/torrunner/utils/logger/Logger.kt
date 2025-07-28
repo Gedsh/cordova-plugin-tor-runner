@@ -50,7 +50,7 @@ object Logger {
 
     private val logFlow by lazy {
         MutableSharedFlow<LogEntry>(
-            replay = 0,
+            replay = 10,
             extraBufferCapacity = 100,
             onBufferOverflow = BufferOverflow.DROP_OLDEST
         ).also { flow ->
