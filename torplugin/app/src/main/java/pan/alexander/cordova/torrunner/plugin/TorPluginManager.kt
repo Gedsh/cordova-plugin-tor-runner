@@ -35,6 +35,7 @@ import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_START
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_TOR
 import pan.alexander.cordova.torrunner.utils.Constants.MAX_PORT_NUMBER
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
+import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import java.util.concurrent.locks.ReentrantLock
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -61,6 +62,7 @@ class TorPluginManager @Inject constructor(
         cordova: CordovaInterface?,
         callbackContext: CallbackContext?
     ) = runOnBackgroundThread(cordova, callbackContext) {
+        logi("Plugin starts Tor")
         startTor(callbackContext)
     }?.let {
         loge("TorManager startTor", it, true)
@@ -93,6 +95,7 @@ class TorPluginManager @Inject constructor(
     private fun stopTor(callbackContext: CallbackContext? = null) {
         stopTorLock.withLock {
             if (coreStatus.torState == CoreState.RUNNING || coreStatus.torState == CoreState.FAULT) {
+                logi("Plugin stops Tor")
                 actionSender.sendIntent(ACTION_STOP_TOR)
             }
             callbackContext?.success()
@@ -145,8 +148,10 @@ class TorPluginManager @Inject constructor(
 
     private fun manageTor(mode: TorMode) {
         if (mode == TorMode.ALWAYS && coreStatus.torState == CoreState.STOPPED) {
+            logi("Start Tor because of mode ALWAYS")
             startTor()
         } else if (mode == TorMode.NEVER && coreStatus.torState == CoreState.RUNNING) {
+            logi("Stop Tor because of mode NEVER")
             stopTor()
         }
     }
@@ -181,6 +186,7 @@ class TorPluginManager @Inject constructor(
         } ?: false
 
         if (redirect && coreStatus.torState == CoreState.STOPPED) {
+            logi("Start Tor because ${domainToPort.domain}:${domainToPort.port} is unreachable")
             startTor()
         }
 

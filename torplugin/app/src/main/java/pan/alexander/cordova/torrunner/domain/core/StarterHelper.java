@@ -182,6 +182,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
                 logNativeCrash();
 
                 if (coreStatus.getTorState() == RUNNING) {
+                    logw("Stop Tor because of a reverse proxy failure");
                     actionSender.sendIntent(ACTION_STOP_TOR);
                 }
 
