@@ -25,18 +25,34 @@ import android.net.NetworkCapabilities
 import android.os.Build
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object NetworkChecker {
+private const val CHECK_AVAILABLE_NETWORK_INTERVAL_SEC = 10 * 1000
+private const val CHECK_VPN_NETWORK_INTERVAL_SEC = 20 * 1000
 
-    private val checking = AtomicBoolean(false)
+@Singleton
+class NetworkChecker @Inject constructor(
+    private val context: Context
+) {
+
+    private val checkingNetworkAvailable = AtomicBoolean(false)
     @Volatile
     private var networkAvailable = false
+    @Volatile
+    private var lastNetworkAvailableCheck = 0L
+    private val checkingVpnNetwork = AtomicBoolean(false)
+    @Volatile
+    private var vpnNetwork = true
+    @Volatile
+    private var lastVpnNetworkCheck = 0L
 
     @Suppress("DEPRECATION")
-    @JvmStatic
-    fun isNetworkAvailable(context: Context): Boolean =
+    fun isNetworkAvailable(): Boolean =
         try {
-            networkAvailable = if (checking.compareAndSet(false, true)) {
+            networkAvailable = if (checkingNetworkAvailable.compareAndSet(false, true)
+                && System.currentTimeMillis() - lastNetworkAvailableCheck > CHECK_AVAILABLE_NETWORK_INTERVAL_SEC) {
+
                 val connectivityManager = context.getConnectivityManager()
                 var capabilities: NetworkCapabilities? = null
                 if (connectivityManager != null) {
@@ -71,7 +87,43 @@ object NetworkChecker {
             networkAvailable = false
             false
         } finally {
-            checking.set(false)
+            lastNetworkAvailableCheck = System.currentTimeMillis()
+            checkingNetworkAvailable.set(false)
+        }
+
+    @Suppress("DEPRECATION")
+    fun isVpnActive(): Boolean =
+        try {
+            vpnNetwork = if (checkingVpnNetwork.compareAndSet(false, true)
+                && System.currentTimeMillis() - lastVpnNetworkCheck > CHECK_VPN_NETWORK_INTERVAL_SEC) {
+                val connectivityManager = context.getConnectivityManager()
+
+                if (connectivityManager != null) {
+                    connectivityManager.allNetworks.let {
+                        for (network in it) {
+                            val networkCapabilities =
+                                connectivityManager.getNetworkCapabilities(network)
+                            if (networkCapabilities != null && hasVpnTransport(networkCapabilities)) {
+                                return true
+                            }
+                        }
+                        return false
+                    }
+
+                } else {
+                    false
+                }
+            } else {
+                vpnNetwork
+            }
+            vpnNetwork
+        } catch (e: Exception) {
+            loge("NetworkChecker isVpnActive", e)
+            vpnNetwork = false
+            false
+        } finally {
+            lastVpnNetworkCheck = System.currentTimeMillis()
+            checkingVpnNetwork.set(false)
         }
 
     private fun hasActiveTransport(capabilities: NetworkCapabilities): Boolean =
@@ -87,6 +139,9 @@ object NetworkChecker {
         }
         return true
     }
+
+    private fun hasVpnTransport(capabilities: NetworkCapabilities): Boolean =
+        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
 
     private fun Context.getConnectivityManager(): ConnectivityManager? =
         getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
