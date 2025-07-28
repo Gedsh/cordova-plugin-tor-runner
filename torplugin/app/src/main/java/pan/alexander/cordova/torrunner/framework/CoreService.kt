@@ -58,6 +58,8 @@ class CoreService : Service() {
     lateinit var installer: Installer
     @Inject
     lateinit var coroutineContext: CoroutineContext
+    @Inject
+    lateinit var networkChecker: NetworkChecker
 
     private val scope by lazy {
         CoroutineScope(coroutineContext + CoroutineName("CoreService"))
@@ -100,7 +102,7 @@ class CoreService : Service() {
 
         when (action) {
             ACTION_START_TOR -> {
-                if (NetworkChecker.isNetworkAvailable(this)) {
+                if (networkChecker.isNetworkAvailable()) {
                     startTor().also { startProxy() }
                 } else {
                     logi("But the network is unavailable")
