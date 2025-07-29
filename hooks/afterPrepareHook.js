@@ -90,7 +90,19 @@ module.exports = function (context) {
         + pluginsBlock
         + gradle.slice(licenceBlockEnd)
 
-    // 6. Write back
+    const lintMarker = 'lintOptions {';
+    const newLint = "      disable 'NullSafeMutableLiveData'";
+
+    if (gradle.includes(lintMarker) && !gradle.includes(newLint.trim())) {
+        gradle = gradle.replace(
+            lintMarker,
+            `${lintMarker}\n${newLint}`
+        );
+        console.log('[KSP Hook] Added lint disable: NullSafeMutableLiveData');
+    } else {
+        console.log('[KSP Hook] LintOptions already patched or not found.');
+    }
+
     fs.writeFileSync(gradlePath, gradle, 'utf8');
     console.log('[KSP Hook] KSP plugin injected.');
 };
