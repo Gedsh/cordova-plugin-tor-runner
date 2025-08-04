@@ -121,6 +121,9 @@
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/framework/CoreServiceActions.java"
                 target-dir="java/pan/alexander/cordova/torrunner/framework" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/framework/NetworkObserver.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/framework" />
 
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/utils/Constants.java"
@@ -208,10 +211,28 @@
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/TorMode.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/TorRestarterReconnector.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
 
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/installer/Installer.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/installer" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/network/NetworkRepository.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/network" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/network/NetworkType.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/network" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/network/OnTorConnectionCheckedListener.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/network" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/network/TorConnectionCheckerInteractor.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/network" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/network/TorConnectionCheckerRepository.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/network" />
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/preferences/PreferenceRepository.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/preferences" />
@@ -225,6 +246,12 @@
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/configuration/ConfigurationRepositoryImpl.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/data/configuration" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/network/NetworkRepositoryImpl.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/data/network" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/network/TorConnectionCheckerRepositoryImpl.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/data/network" />
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/preferences/PreferenceRepositoryImpl.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/data/preferences" />

@@ -32,13 +32,17 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import dagger.Lazy;
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository;
+import pan.alexander.cordova.torrunner.domain.network.OnTorConnectionCheckedListener;
+import pan.alexander.cordova.torrunner.domain.network.TorConnectionCheckerInteractor;
 import pan.alexander.cordova.torrunner.utils.file.FileManager;
+import pan.alexander.cordova.torrunner.utils.network.NetworkChecker;
 import pan.alexander.cordova.torrunner.utils.portchecker.PortChecker;
 import pan.alexander.cordova.torrunner.utils.thread.ThreadFinder;
 
 @Singleton
-public class TorManager {
+public class TorManager implements OnTorConnectionCheckedListener {
 
     private final PortChecker portChecker;
     private final FileManager fileManager;
@@ -48,6 +52,10 @@ public class TorManager {
     private final Restarter restarter;
     private final Killer killer;
     private final ThreadFinder threadFinder;
+    private final TorRestarterReconnector torRestarterReconnector;
+    private final NetworkChecker networkChecker;
+
+    private final Lazy<TorConnectionCheckerInteractor> torConnectionCheckerInteractor;
 
     @Inject
     public TorManager(
@@ -58,7 +66,10 @@ public class TorManager {
             StarterHelper starterHelper,
             Restarter restarter,
             Killer killer,
-            ThreadFinder threadFinder
+            ThreadFinder threadFinder,
+            TorRestarterReconnector torRestarterReconnector,
+            NetworkChecker networkChecker,
+            Lazy<TorConnectionCheckerInteractor> torConnectionCheckerInteractor
     ) {
         this.portChecker = portChecker;
         this.fileManager = fileManager;
@@ -68,6 +79,9 @@ public class TorManager {
         this.restarter = restarter;
         this.killer = killer;
         this.threadFinder = threadFinder;
+        this.torRestarterReconnector = torRestarterReconnector;
+        this.networkChecker = networkChecker;
+        this.torConnectionCheckerInteractor = torConnectionCheckerInteractor;
     }
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -268,10 +282,27 @@ public class TorManager {
     }
 
     private void checkInternetConnection() {
-        //TODO
+        torConnectionCheckerInteractor.get().checkInternetConnection();
     }
 
     private void sendTorStartFailureToJavaScript() {
         //TODO
+    }
+
+    @Override
+    public void onConnectionChecked(boolean available) {
+        if (coreStatus.getTorState() == RUNNING) {
+            if (available) {
+                torRestarterReconnector.stopRestarterCounters();
+                coreStatus.setTorConnectionAvailable(true);
+            } else if (isNetworkAvailable()) {
+                torRestarterReconnector.startRestarterCounter();
+                coreStatus.setTorConnectionAvailable(false);
+            }
+        }
+    }
+
+    private boolean isNetworkAvailable() {
+        return networkChecker.isNetworkAvailable(true);
     }
 }

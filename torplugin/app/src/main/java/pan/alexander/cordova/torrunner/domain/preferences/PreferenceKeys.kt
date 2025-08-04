@@ -21,4 +21,5 @@ package pan.alexander.cordova.torrunner.domain.preferences
 
 object PreferenceKeys {
     const val TOR_MODE = "TOR_MODE"
+    const val LAST_NETWORK = "LAST_NETWORK"
 }

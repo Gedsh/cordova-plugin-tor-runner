@@ -29,6 +29,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val CHECK_AVAILABLE_NETWORK_INTERVAL_SEC = 10 * 1000
+private const val CHECK_AVAILABLE_NETWORK_MIN_INTERVAL_SEC = 1 * 1000
 private const val CHECK_VPN_NETWORK_INTERVAL_SEC = 20 * 1000
 
 @Singleton
@@ -48,10 +49,12 @@ class NetworkChecker @Inject constructor(
     private var lastVpnNetworkCheck = 0L
 
     @Suppress("DEPRECATION")
-    fun isNetworkAvailable(): Boolean =
+    fun isNetworkAvailable(forceCheck: Boolean = false): Boolean =
         try {
             networkAvailable = if (checkingNetworkAvailable.compareAndSet(false, true)
-                && System.currentTimeMillis() - lastNetworkAvailableCheck > CHECK_AVAILABLE_NETWORK_INTERVAL_SEC) {
+                && (forceCheck && (System.currentTimeMillis() - lastNetworkAvailableCheck > CHECK_AVAILABLE_NETWORK_MIN_INTERVAL_SEC)
+                        || System.currentTimeMillis() - lastNetworkAvailableCheck > CHECK_AVAILABLE_NETWORK_INTERVAL_SEC)) {
+                lastNetworkAvailableCheck = System.currentTimeMillis()
 
                 val connectivityManager = context.getConnectivityManager()
                 var capabilities: NetworkCapabilities? = null
@@ -87,7 +90,6 @@ class NetworkChecker @Inject constructor(
             networkAvailable = false
             false
         } finally {
-            lastNetworkAvailableCheck = System.currentTimeMillis()
             checkingNetworkAvailable.set(false)
         }
 
@@ -96,6 +98,7 @@ class NetworkChecker @Inject constructor(
         try {
             vpnNetwork = if (checkingVpnNetwork.compareAndSet(false, true)
                 && System.currentTimeMillis() - lastVpnNetworkCheck > CHECK_VPN_NETWORK_INTERVAL_SEC) {
+                lastVpnNetworkCheck = System.currentTimeMillis()
                 val connectivityManager = context.getConnectivityManager()
 
                 if (connectivityManager != null) {
@@ -122,7 +125,6 @@ class NetworkChecker @Inject constructor(
             vpnNetwork = false
             false
         } finally {
-            lastVpnNetworkCheck = System.currentTimeMillis()
             checkingVpnNetwork.set(false)
         }
 

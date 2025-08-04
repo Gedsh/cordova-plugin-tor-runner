@@ -48,6 +48,7 @@ import javax.inject.Inject;
 import pan.alexander.cordova.torrunner.App;
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository;
 import pan.alexander.cordova.torrunner.domain.installer.Installer;
+import pan.alexander.cordova.torrunner.domain.network.TorConnectionCheckerInteractor;
 import pan.alexander.cordova.torrunner.framework.ActionSender;
 import pan.alexander.cordova.torrunner.utils.file.FileManager;
 import pan.alexander.cordova.torrunner.utils.portchecker.PortChecker;
@@ -62,6 +63,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
     private final Installer installer;
     private final Restarter restarter;
     private final ActionSender actionSender;
+    private final TorConnectionCheckerInteractor torConnectionCheckerInteractor;
     @Inject
     public StarterHelper(
             ConfigurationRepository configuration,
@@ -70,7 +72,8 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             PortChecker portChecker,
             Installer installer,
             Restarter restarter,
-            ActionSender actionSender
+            ActionSender actionSender,
+            TorConnectionCheckerInteractor torConnectionCheckerInteractor
     ) {
         this.configuration = configuration;
         this.coreStatus = coreStatus;
@@ -79,6 +82,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
         this.installer = installer;
         this.restarter = restarter;
         this.actionSender = actionSender;
+        this.torConnectionCheckerInteractor = torConnectionCheckerInteractor;
     }
 
     Runnable getTorStarterRunnable() {
@@ -307,6 +311,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
     public void onStdOutput(@NotNull String stdout) {
         if(stdout.endsWith("Bootstrapped 100% (done): Done")) {
             coreStatus.setTorReady(true);
+            torConnectionCheckerInteractor.checkInternetConnection();
         }
     }
 }

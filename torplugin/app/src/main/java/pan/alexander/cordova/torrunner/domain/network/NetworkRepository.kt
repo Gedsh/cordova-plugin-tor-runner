@@ -17,15 +17,12 @@
     Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
  */
 
-package pan.alexander.cordova.torrunner.domain.preferences
+package pan.alexander.cordova.torrunner.domain.network
 
-import pan.alexander.cordova.torrunner.domain.core.TorMode
-import pan.alexander.cordova.torrunner.domain.network.NetworkType
+import kotlinx.coroutines.flow.Flow
 
-interface PreferenceRepository {
-    fun getTorMode(): TorMode
-    fun setTorMode(mode: TorMode)
-
-    fun getLastNetwork(): NetworkType
-    fun setLastNetwork(networkType: NetworkType)
+interface NetworkRepository {
+    fun listenNetworkChanges()
+    fun unlistenNetworkChanges()
+    fun networkChanges(): Flow<Unit>
 }

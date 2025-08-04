@@ -33,7 +33,6 @@ class Plugin : CordovaPlugin() {
 
     @Inject
     lateinit var appManager: AppManager
-
     @Inject
     lateinit var torPluginManager: TorPluginManager
 
@@ -93,6 +92,10 @@ class Plugin : CordovaPlugin() {
 
     override fun onResume(multitasking: Boolean) {
         appManager.onActivityResumed()
+    }
+
+    override fun onPause(multitasking: Boolean) {
+        appManager.onActivityPaused()
     }
 
     override fun onDestroy() {

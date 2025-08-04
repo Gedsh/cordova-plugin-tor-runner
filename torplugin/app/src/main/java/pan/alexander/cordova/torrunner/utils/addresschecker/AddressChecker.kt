@@ -1,8 +1,11 @@
 package pan.alexander.cordova.torrunner.utils.addresschecker
 
 import android.annotation.SuppressLint
+import pan.alexander.cordova.torrunner.utils.Constants.LOOPBACK_ADDRESS
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logw
 import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.Socket
 import java.net.SocketTimeoutException
 import java.security.cert.X509Certificate
 import javax.inject.Inject
@@ -45,27 +48,42 @@ class AddressChecker @Inject constructor() {
         sslContext.socketFactory
     }
 
-    fun isHttpsAddressReachable(domain: String, port: Int = 443, timeoutMs: Int = 3000): Boolean =
-        try {
+    fun isHttpsAddressReachable(
+        domain: String,
+        port: Int = 443,
+        timeoutMs: Int = 3000,
+        socksPort: Int = 0
+    ): Boolean = try {
 
-            val factory: SSLSocketFactory = sslSocketFactory
+            val proxy = if (socksPort != 0) {
+                Proxy(Proxy.Type.SOCKS, InetSocketAddress(LOOPBACK_ADDRESS, socksPort))
+            } else {
+                Proxy.NO_PROXY
+            }
 
-            factory.createSocket().use { plainSocket ->
-                val socket = plainSocket as SSLSocket
-                socket.soTimeout = timeoutMs
-                socket.connect(InetSocketAddress(domain, port), timeoutMs)
-                socket.enabledProtocols = socket.supportedProtocols
-                socket.startHandshake()
+            Socket(proxy).use { plainSocket ->
+                plainSocket.connect(InetSocketAddress(domain, port), timeoutMs)
+                plainSocket.soTimeout = timeoutMs
 
-                if (!validateCertificateDomain(socket, domain)) {
+                val sslSocket = (sslSocketFactory.createSocket(
+                    plainSocket,
+                    domain,
+                    port,
+                    true
+                ) as SSLSocket)
+
+                sslSocket.enabledProtocols = sslSocket.supportedProtocols
+                sslSocket.startHandshake()
+
+                if (!validateCertificateDomain(sslSocket, domain)) {
                     return@use false
                 }
 
-                val writer = socket.outputStream.bufferedWriter()
+                val writer = sslSocket.outputStream.bufferedWriter()
                 writer.write("HEAD / HTTP/1.1\r\nHost: $domain\r\nConnection: close\r\n\r\n")
                 writer.flush()
 
-                val reader = socket.inputStream.bufferedReader()
+                val reader = sslSocket.inputStream.bufferedReader()
                 val responseLine = reader.readLine()
 
                 if (!responseLine.startsWith("HTTP")) {

@@ -25,6 +25,8 @@ import pan.alexander.cordova.torrunner.domain.preferences.PreferenceKeys.TOR_MOD
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 import javax.inject.Inject
 import androidx.core.content.edit
+import pan.alexander.cordova.torrunner.domain.network.NetworkType
+import pan.alexander.cordova.torrunner.domain.preferences.PreferenceKeys.LAST_NETWORK
 
 class PreferenceRepositoryImpl @Inject constructor(
     private val preferences: SharedPreferences
@@ -42,5 +44,19 @@ class PreferenceRepositoryImpl @Inject constructor(
         preferences.edit {
             putString(TOR_MODE, mode.name)
         }
+
+    override fun getLastNetwork(): NetworkType =
+        NetworkType.valueOf(
+            preferences.getString(
+                LAST_NETWORK,
+                NetworkType.UNKNOWN_NETWORK.name
+            ) ?: NetworkType.UNKNOWN_NETWORK.name
+        )
+
+    override fun setLastNetwork(networkType: NetworkType) {
+        preferences.edit() {
+            putString(LAST_NETWORK, networkType.name)
+        }
+    }
 
 }

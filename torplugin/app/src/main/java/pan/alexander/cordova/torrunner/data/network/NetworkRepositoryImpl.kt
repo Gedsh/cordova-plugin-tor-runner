@@ -1,0 +1,48 @@
+/*
+    This file is part of Cordova Plugin Tor Runner.
+
+    Cordova Plugin Tor Runner is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Cordova Plugin Tor Runner is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Cordova Plugin Tor Runner.  If not, see <http://www.gnu.org/licenses/>.
+
+    Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
+ */
+
+package pan.alexander.cordova.torrunner.data.network
+
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.debounce
+import pan.alexander.cordova.torrunner.domain.network.NetworkRepository
+import pan.alexander.cordova.torrunner.framework.NetworkObserver
+import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
+import javax.inject.Inject
+
+private const val DEBOUNCE_INTERVAL_SEC = 3
+
+class NetworkRepositoryImpl @Inject constructor(
+    private val networkObserver: NetworkObserver
+) : NetworkRepository {
+
+    override fun listenNetworkChanges() {
+        networkObserver.unlistenNetworkChanges()
+        networkObserver.listenNetworkChanges()
+        logi("Listen network changes")
+    }
+
+    override fun unlistenNetworkChanges() {
+        networkObserver.unlistenNetworkChanges()
+        logi("Unlisten network changes")
+    }
+
+    override fun networkChanges(): Flow<Unit> =
+        networkObserver.networkChanges.debounce(DEBOUNCE_INTERVAL_SEC * 1000L)
+}

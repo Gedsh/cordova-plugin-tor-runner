@@ -33,6 +33,8 @@ import pan.alexander.cordova.torrunner.domain.core.CoreStatus
 import pan.alexander.cordova.torrunner.domain.core.ReverseProxyManager
 import pan.alexander.cordova.torrunner.domain.core.TorManager
 import pan.alexander.cordova.torrunner.domain.installer.Installer
+import pan.alexander.cordova.torrunner.domain.network.NetworkRepository
+import pan.alexander.cordova.torrunner.domain.network.TorConnectionCheckerInteractor
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_RELOAD_TOR_CONFIGURATION
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_RESTART_TOR
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_START_TOR
@@ -60,6 +62,10 @@ class CoreService : Service() {
     lateinit var coroutineContext: CoroutineContext
     @Inject
     lateinit var networkChecker: NetworkChecker
+    @Inject
+    lateinit var networkRepository: NetworkRepository
+    @Inject
+    lateinit var torConnectionCheckerInteractor: TorConnectionCheckerInteractor
 
     private val scope by lazy {
         CoroutineScope(coroutineContext + CoroutineName("CoreService"))
@@ -70,6 +76,21 @@ class CoreService : Service() {
         super.onCreate()
 
         logi("Core Service started")
+
+        listenNetworkChanges()
+
+        torConnectionCheckerInteractor.addListener(torManager)
+    }
+
+    private fun listenNetworkChanges() {
+        scope.launch {
+            with(networkRepository) {
+                listenNetworkChanges()
+                networkChanges().collect {
+                    torConnectionCheckerInteractor.checkInternetConnection()
+                }
+            }
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -77,6 +98,9 @@ class CoreService : Service() {
     }
 
     override fun onDestroy() {
+
+        torConnectionCheckerInteractor.removeListener(torManager)
+        networkRepository.unlistenNetworkChanges()
 
         if (coreStatus.torState != CoreState.STOPPED) {
             stopTor().also { stopProxy() }

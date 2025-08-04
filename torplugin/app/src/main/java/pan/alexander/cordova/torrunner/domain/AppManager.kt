@@ -19,38 +19,21 @@
 
 package pan.alexander.cordova.torrunner.domain
 
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import pan.alexander.cordova.torrunner.framework.ActionSender
-import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_START_TOR
-import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_TOR
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.CoroutineContext
 
 @Singleton
-class AppManager @Inject constructor(
-    val context: CoroutineContext,
-    private val actionSender: ActionSender
-) {
-
-    private val scopeIo by lazy {
-        CoroutineScope(context + CoroutineName("AppManager"))
-    }
+class AppManager @Inject constructor() {
 
     fun onActivityResumed() {
 
     }
 
+    fun onActivityPaused() {
+
+    }
+
     fun onActivityDestroyed() {
 
-    }
-
-    private fun startTor() {
-        actionSender.sendIntent(ACTION_START_TOR)
-    }
-
-    private fun stopTor() {
-        actionSender.sendIntent(ACTION_STOP_TOR)
     }
 }

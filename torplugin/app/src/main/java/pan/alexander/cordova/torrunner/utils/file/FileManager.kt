@@ -98,6 +98,10 @@ class FileManager @Inject constructor() {
         false
     }
 
+    fun deleteFile(path: String): Boolean {
+        return deleteFile(File(path))
+    }
+
     fun copyFile(source: File, destination: File): Boolean =
         try {
             destination.parentFile?.mkdirs()
