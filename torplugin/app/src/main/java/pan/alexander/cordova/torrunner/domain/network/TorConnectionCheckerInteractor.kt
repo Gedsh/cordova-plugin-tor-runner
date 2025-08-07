@@ -122,14 +122,11 @@ class TorConnectionCheckerInteractor @Inject constructor(
                         false
                     } catch (e: IOException) {
                         logException(e)
-                        checking.getAndSet(false)
                         makeDelay(ADDITIONAL_DELAY_SEC)
                         false
                     } catch (e: Exception) {
                         logException(e)
                         false
-                    } finally {
-                        checking.compareAndSet(true, false)
                     }
 
                     ensureActive()
@@ -144,6 +141,8 @@ class TorConnectionCheckerInteractor @Inject constructor(
                         makeDelay(CHECK_INTERVAL_SEC)
                     }
                 }
+
+                checking.getAndSet(false)
             }
         } catch (e: Exception) {
             if (e !is CancellationException) {
@@ -165,7 +164,7 @@ class TorConnectionCheckerInteractor @Inject constructor(
     private suspend fun makeDelay(delaySec: Int) {
         try {
             delay(delaySec * 1000L)
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
         }
     }
 

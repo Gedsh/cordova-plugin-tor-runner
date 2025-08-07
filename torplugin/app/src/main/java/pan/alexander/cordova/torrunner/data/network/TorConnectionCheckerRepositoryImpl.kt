@@ -44,6 +44,7 @@ class TorConnectionCheckerRepositoryImpl @Inject constructor(
         return addressChecker.isHttpsAddressReachable(
             domain = domain,
             port = 443,
+            timeoutMs = 10000,
             socksPort = configurationRepository.getTorSocksPort()
         )
     }

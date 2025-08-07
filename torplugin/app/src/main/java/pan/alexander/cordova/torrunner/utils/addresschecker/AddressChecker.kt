@@ -1,8 +1,10 @@
 package pan.alexander.cordova.torrunner.utils.addresschecker
 
 import android.annotation.SuppressLint
+import pan.alexander.cordova.torrunner.utils.Constants.CHROME_BROWSER_USER_AGENT
 import pan.alexander.cordova.torrunner.utils.Constants.LOOPBACK_ADDRESS
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logw
+import java.io.BufferedWriter
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.Socket
@@ -12,7 +14,6 @@ import javax.inject.Inject
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
-import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
@@ -24,19 +25,19 @@ class AddressChecker @Inject constructor() {
             object : X509TrustManager {
                 @SuppressLint("TrustAllX509TrustManager")
                 override fun checkClientTrusted(
-                    chain: Array<java.security.cert.X509Certificate>,
+                    chain: Array<X509Certificate>,
                     authType: String
                 ) {
                 }
 
                 @SuppressLint("TrustAllX509TrustManager")
                 override fun checkServerTrusted(
-                    chain: Array<java.security.cert.X509Certificate>,
+                    chain: Array<X509Certificate>,
                     authType: String
                 ) {
                 }
 
-                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> =
+                override fun getAcceptedIssuers(): Array<X509Certificate> =
                     arrayOf()
             }
         )
@@ -72,25 +73,38 @@ class AddressChecker @Inject constructor() {
                     true
                 ) as SSLSocket)
 
-                sslSocket.enabledProtocols = sslSocket.supportedProtocols
+                sslSocket.enabledProtocols = sslSocket.supportedProtocols.filter {
+                    it.startsWith("TLS")
+                }.toTypedArray()
                 sslSocket.startHandshake()
 
                 if (!validateCertificateDomain(sslSocket, domain)) {
-                    return@use false
+                    return false
                 }
 
                 val writer = sslSocket.outputStream.bufferedWriter()
-                writer.write("HEAD / HTTP/1.1\r\nHost: $domain\r\nConnection: close\r\n\r\n")
-                writer.flush()
+                writeHttpRequestNoCache(
+                    writer = writer,
+                    domain = domain,
+                    method = "GET",
+                    headers = mapOf("User-Agent" to CHROME_BROWSER_USER_AGENT)
+                )
 
                 val reader = sslSocket.inputStream.bufferedReader()
                 val responseLine = reader.readLine()
 
-                if (!responseLine.startsWith("HTTP")) {
-                    logw("Address ${domain}:${port} respond with $responseLine")
+                if (responseLine == null || !responseLine.startsWith("HTTP/")) {
+                    logw("Unexpected response from $domain:$port -> $responseLine")
+                    return false
                 }
 
-                responseLine != null && responseLine.startsWith("HTTP")
+                val statusCode = responseLine.split(" ")[1].toIntOrNull() ?: return false
+                if (statusCode in 200..404) {
+                    return true
+                } else {
+                    logw("Received non-OK status code $statusCode from $domain")
+                    return false
+                }
             }
         } catch (_: SocketTimeoutException) {
             logw("Address ${domain}:${port} timeout")
@@ -108,6 +122,32 @@ class AddressChecker @Inject constructor() {
 
             false
         }
+
+    fun writeHttpRequestNoCache(
+        writer: BufferedWriter,
+        domain: String,
+        path: String = "/",
+        method: String = "HEAD",
+        headers: Map<String, String> = emptyMap()
+    ) = with(writer) {
+
+        val nonce = System.currentTimeMillis()
+        val requestPath = if ("?" in path) "$path&nocache=$nonce" else "$path?nocache=$nonce"
+
+        write("$method $requestPath HTTP/1.1\r\n")
+        write("Host: $domain\r\n")
+        write("Connection: close\r\n")
+        write("Cache-Control: no-cache, no-store, must-revalidate\r\n")
+        write("Pragma: no-cache\r\n")
+        write("Expires: 0\r\n")
+
+        for ((key, value) in headers) {
+            write("$key: $value\r\n")
+        }
+
+        write("\r\n")
+        flush()
+    }
 
     private fun validateCertificateDomain(socket: SSLSocket, domain: String): Boolean {
         val session = socket.session
