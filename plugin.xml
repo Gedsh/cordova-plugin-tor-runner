@@ -29,7 +29,6 @@
     <preference name="KOTLINX_COROUTINES_VERSION" default="1.10.2" />
     <preference name="LIFECYCLE_PROCESS_VERSION" default="2.9.1" />
     <preference name="ANDROID_SHELL_VERSION" default="1.0.1" />
-    <preference name="OK_HTTP_VERSION" default="5.1.0" />
     <preference name="ANDROID_PREFERENCES_VERSION" default="1.2.1" />
 
     <platform name="android">
@@ -260,7 +259,6 @@
         <framework src="org.jetbrains.kotlinx:kotlinx-coroutines-android:$KOTLINX_COROUTINES_VERSION" />
         <framework src="androidx.lifecycle:lifecycle-process:$LIFECYCLE_PROCESS_VERSION" />
         <framework src="com.jrummyapps:android-shell:$ANDROID_SHELL_VERSION" />
-        <framework src="com.squareup.okhttp3:okhttp:$OK_HTTP_VERSION" />
         <framework src="androidx.preference:preference-ktx:$ANDROID_PREFERENCES_VERSION" />
 
         <framework src="torplugin/gradle/custom-build.gradle" custom="true" type="gradleReference" />

@@ -86,8 +86,6 @@ dependencies {
     implementation libs.kotlinx.coroutines
     //Shell
     implementation libs.android.shell
-    //OkHTTP
-    implementation libs.ok.http
     //Preferences
     implementation libs.androidx.preferences
 

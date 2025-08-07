@@ -13,7 +13,6 @@ cordova = "14.0.1"
 dagger = "2.55"
 coroutines = "1.10.2"
 shell = "1.0.1"
-okhttp = "5.1.0"
 preferences = "1.2.1"
 kspVersion = "2.1.0-1.0.29"
 
@@ -51,9 +50,6 @@ kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutin
 
 #Shell
 android-shell = { group = "com.jrummyapps", name = "android-shell", version.ref = "shell" }
-
-#ok-http
-ok-http = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 
 androidx-preferences = { group = "androidx.preference", name = "preference-ktx", version.ref = "preferences" }
 
