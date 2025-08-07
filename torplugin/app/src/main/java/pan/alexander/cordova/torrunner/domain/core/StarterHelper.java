@@ -64,6 +64,9 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
     private final Restarter restarter;
     private final ActionSender actionSender;
     private final TorConnectionCheckerInteractor torConnectionCheckerInteractor;
+    private final int EXTRA_CONNECTION_CHECK_MIN_INTERVAL_SEC = 60;
+    private volatile long lastExtraConnectionCheck;
+
     @Inject
     public StarterHelper(
             ConfigurationRepository configuration,
@@ -83,6 +86,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
         this.restarter = restarter;
         this.actionSender = actionSender;
         this.torConnectionCheckerInteractor = torConnectionCheckerInteractor;
+        this.lastExtraConnectionCheck = System.currentTimeMillis();
     }
 
     Runnable getTorStarterRunnable() {
@@ -311,6 +315,14 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
     public void onStdOutput(@NotNull String stdout) {
         if(stdout.endsWith("Bootstrapped 100% (done): Done")) {
             coreStatus.setTorReady(true);
+            torConnectionCheckerInteractor.checkInternetConnection();
+        } else if ((stdout.endsWith("Ignoring directory request, since no bridge nodes are available yet.")
+                || stdout.endsWith("We will try to fetch missing descriptors soon.")
+                || stdout.endsWith("Discarding this circuit.")
+                || stdout.endsWith("Possible compression bomb; abandoning stream.")
+                || stdout.endsWith("Retrying on a new circuit."))
+                && System.currentTimeMillis() - lastExtraConnectionCheck > EXTRA_CONNECTION_CHECK_MIN_INTERVAL_SEC * 1000) {
+            lastExtraConnectionCheck = System.currentTimeMillis();
             torConnectionCheckerInteractor.checkInternetConnection();
         }
     }
