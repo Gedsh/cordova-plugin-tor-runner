@@ -20,7 +20,10 @@
 package pan.alexander.cordova.torrunner.data.configuration
 
 import org.json.JSONObject
+import pan.alexander.cordova.torrunner.domain.configuration.BridgeType
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
+import pan.alexander.cordova.torrunner.domain.configuration.RendezvousType
+import pan.alexander.cordova.torrunner.domain.configuration.SnowflakeRepository
 import pan.alexander.cordova.torrunner.domain.core.TorMode
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 import pan.alexander.cordova.torrunner.framework.ActionSender
@@ -39,6 +42,7 @@ import kotlin.text.toInt
 class ConfigurationRepositoryImpl @Inject constructor(
     private val configurationManager: ConfigurationManager,
     private val preferences: PreferenceRepository,
+    private val snowflakeRepository: SnowflakeRepository,
     private val fileManager: FileManager,
     private val actionSender: ActionSender
 ) : ConfigurationRepository {
@@ -143,6 +147,53 @@ class ConfigurationRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getCurrentBridgeType(): BridgeType {
+
+        var bridgeType = BridgeType.NONE
+
+        val torConf = getTorConfiguration()
+
+        for (confLine in torConf) {
+            if (confLine.first == "Bridge") {
+                bridgeType = getBridgeTypeFromLine(confLine.second)
+                break
+            }
+        }
+
+        return bridgeType
+    }
+
+    override fun getSnowflakeBridgeType(): RendezvousType {
+        val torConf = getTorConfiguration()
+
+        var rendezvous = RendezvousType.AMP_CACHE
+
+        for (confLine in torConf) {
+            if (confLine.first == "Bridge"
+                && getBridgeTypeFromLine(confLine.second) == BridgeType.SNOWFLAKE
+            ) {
+                rendezvous = if (confLine.second.contains("ampcache=")) {
+                    RendezvousType.AMP_CACHE
+                } else if (confLine.second.contains("sqsqueue=")) {
+                    RendezvousType.AMAZON_SQS
+                } else {
+                    RendezvousType.CDN77
+                }
+                break
+            }
+        }
+
+        return rendezvous
+    }
+
+    override fun setSnowflakeBridgeType(type: RendezvousType) = try {
+        val torConf = getTorConfiguration()
+        val newTorConf = setUseSnowflakeBridges(torConf.toList(), type)
+        updateTorConfiguration(torConf, newTorConf)
+    } catch (e: Exception) {
+        loge("ConfigurationRepository setSnowflakeBridgeType $type", e)
+    }
+
     override fun getReverseProxyPath() = configurationManager.reverseProxyPath
 
     override fun getReverseProxyPidPath() = configurationManager.reverseProxyPidPath
@@ -194,7 +245,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
                 BridgeType.NONE
             }
             if (type == BridgeType.SNOWFLAKE) {
-                newTorConf = setUseSnowflakeBridges(newTorConf, type)
+                newTorConf = setUseSnowflakeBridges(newTorConf)
             } else {
                 newTorConf = clearUseBridges(newTorConf)
             }
@@ -226,7 +277,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
 
     private fun setUseSnowflakeBridges(
         torConf: List<Pair<String, String>>,
-        type: BridgeType
+        type: RendezvousType = RendezvousType.AMP_CACHE
     ): List<Pair<String, String>> = try {
 
         val newTorConf = mutableListOf<Pair<String, String>>()
@@ -241,30 +292,13 @@ class ConfigurationRepositoryImpl @Inject constructor(
             }
         }
 
-        if (type == BridgeType.SNOWFLAKE) {
-            with(newTorConf) {
-                add("UseBridges" to "1")
-                add(
-                    Pair(
-                        "ClientTransportPlugin",
-                        "snowflake exec ${configurationManager.snowflakePath}"
-                    )
-                )
-                add(
-                    Pair(
-                        "Bridge",
-                        "snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 fingerprint=2B280B23E1107BB62ABFC40DDCC8824814F80A72 url=https://snowflake-broker.torproject.net/ ampcache=https://cdn.ampproject.org/ fronts=www.google.com,cdn.ampproject.org utls-imitate=hellorandomizedalpn ice=stun:stun.nextcloud.com:443,stun:stun.sipgate.net:10000,stun:stun.epygi.com:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.bethesda.net:3478,stun:stun.mixvoip.com:3478,stun:stun.voipia.net:3478"
-                    )
-                )
-                add(
-                    Pair(
-                        "Bridge",
-                        "snowflake 192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA fingerprint=8838024498816A039FCBBAB14E6F40A0843051FA url=https://snowflake-broker.torproject.net/ ampcache=https://cdn.ampproject.org/ fronts=www.google.com,cdn.ampproject.org utls-imitate=hellorandomizedalpn ice=stun:stun.nextcloud.com:443,stun:stun.sipgate.net:10000,stun:stun.epygi.com:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.bethesda.net:3478,stun:stun.mixvoip.com:3478,stun:stun.voipia.net:3478"
-                    )
-                )
+        val bridges = snowflakeRepository.getBridgeLines(type)
+        with(newTorConf) {
+            add("UseBridges" to "1")
+            add("ClientTransportPlugin" to "snowflake exec ${configurationManager.snowflakePath}")
+            bridges.forEach {
+                add("Bridge" to it)
             }
-        } else {
-            newTorConf.add("UseBridges" to "0")
         }
 
         newTorConf
@@ -338,13 +372,5 @@ class ConfigurationRepositoryImpl @Inject constructor(
             else -> BridgeType.VANILLA
         }
 
-    enum class BridgeType {
-        NONE,
-        VANILLA,
-        OBFS3,
-        OBFS4,
-        MEEK_LITE,
-        SNOWFLAKE,
-        WEBTUNNEL
-    }
+
 }

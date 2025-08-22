@@ -23,11 +23,13 @@ import dagger.Binds
 import dagger.Module
 import pan.alexander.cordova.torrunner.data.addresschecker.AddressCheckerRepositoryImpl
 import pan.alexander.cordova.torrunner.data.configuration.ConfigurationRepositoryImpl
+import pan.alexander.cordova.torrunner.data.configuration.SnowflakeRepositoryImpl
 import pan.alexander.cordova.torrunner.data.network.NetworkRepositoryImpl
 import pan.alexander.cordova.torrunner.data.network.TorConnectionCheckerRepositoryImpl
 import pan.alexander.cordova.torrunner.data.preferences.PreferenceRepositoryImpl
 import pan.alexander.cordova.torrunner.domain.addresschecker.AddressCheckerRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
+import pan.alexander.cordova.torrunner.domain.configuration.SnowflakeRepository
 import pan.alexander.cordova.torrunner.domain.network.NetworkRepository
 import pan.alexander.cordova.torrunner.domain.network.TorConnectionCheckerRepository
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
@@ -59,4 +61,9 @@ abstract class RepositoryModule {
     abstract fun bindTorConnectionCheckerRepository(
         repositoryImpl: TorConnectionCheckerRepositoryImpl
     ): TorConnectionCheckerRepository
+
+    @Binds
+    abstract fun bindSnowflakeRepository(
+        repositoryImpl: SnowflakeRepositoryImpl
+    ): SnowflakeRepository
 }

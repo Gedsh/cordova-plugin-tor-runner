@@ -48,6 +48,9 @@ interface ConfigurationRepository {
         originalTorConf: List<Pair<String, String>>,
         newTorConf: List<Pair<String, String>>
     )
+    fun getCurrentBridgeType(): BridgeType
+    fun getSnowflakeBridgeType(): RendezvousType
+    fun setSnowflakeBridgeType(type: RendezvousType)
 
     //Reverse Proxy
     fun getReverseProxyPath(): String

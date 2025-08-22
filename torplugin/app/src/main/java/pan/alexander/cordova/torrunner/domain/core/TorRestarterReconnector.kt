@@ -23,7 +23,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import pan.alexander.cordova.torrunner.domain.configuration.BridgeType
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
+import pan.alexander.cordova.torrunner.domain.configuration.RendezvousType
 import pan.alexander.cordova.torrunner.framework.ActionSender
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions
 import pan.alexander.cordova.torrunner.utils.file.FileManager
@@ -31,10 +33,13 @@ import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import pan.alexander.cordova.torrunner.utils.network.NetworkChecker
 import javax.inject.Inject
+import kotlin.math.ceil
 import kotlin.math.pow
 
 private const val DELAY_BEFORE_RESTART_TOR_SEC = 10
 private const val DELAY_BEFORE_FULL_RESTART_TOR_SEC = 60
+private const val MIN_DELAY_ROTATE_BRIDGE_MINUTES = 3
+private const val AUTO_CHECK_BRIDGE_COUNT = 3
 
 @ExperimentalCoroutinesApi
 class TorRestarterReconnector @Inject constructor(
@@ -60,6 +65,9 @@ class TorRestarterReconnector @Inject constructor(
     @Volatile
     private var partialRestartCounter = 0
 
+    @Volatile
+    private var rotateBridgesCounter = 0
+
     fun startRestarterCounter() {
         try {
             if (coreStatus.isTorReady && !isFullRestartCounterRunning() && !isFullRestartCounterLocked()) {
@@ -71,6 +79,9 @@ class TorRestarterReconnector @Inject constructor(
             } else if (!coreStatus.isTorReady && !isPartialRestartCounterRunning()) {
                 cancelPreviousTasks()
                 makeTorProgressivePartialRestart()
+            }
+            if (!isRotateBridgesCounterRunning() && configuration.getCurrentBridgeType() != BridgeType.NONE) {
+                startRotatingBridges()
             }
         } catch (_: CancellationException) {
             resetCounters()
@@ -145,6 +156,10 @@ class TorRestarterReconnector @Inject constructor(
                 else -> return
             }
 
+            if (rotateBridgesCounter > 0) {
+                logi("Stop rotating bridges")
+            }
+
             cancelPreviousTasks()
             resetCounters()
         } catch (e: Exception) {
@@ -162,6 +177,8 @@ class TorRestarterReconnector @Inject constructor(
 
     private fun isFullRestartCounterLocked() = fullRestartCounter < 0
 
+    private fun isRotateBridgesCounterRunning() = rotateBridgesCounter > 0
+
     private fun lockFullRestarterCounter() {
         fullRestartCounter = -1
     }
@@ -169,6 +186,7 @@ class TorRestarterReconnector @Inject constructor(
     private fun resetCounters() {
         partialRestartCounter = 0
         fullRestartCounter = 0
+        rotateBridgesCounter = 0
     }
 
     private fun restartTor() {
@@ -180,4 +198,36 @@ class TorRestarterReconnector @Inject constructor(
     }
 
     private fun isNetworkAvailable() = networkChecker.isNetworkAvailable(true)
+
+    private fun startRotatingBridges() = scope.launch {
+        logi("Start rotating bridges")
+        rotateBridgesCounter++
+        while (coroutineContext.isActive) {
+            if (!isNetworkAvailable()) {
+                stopRestarterCounters()
+                break
+            }
+            delay(
+                1000L * 60 * MIN_DELAY_ROTATE_BRIDGE_MINUTES * ceil(rotateBridgesCounter / AUTO_CHECK_BRIDGE_COUNT.toDouble()).toLong()
+            )
+            if (coreStatus.torState == CoreState.RUNNING && !isFullRestartCounterRunning() && isNetworkAvailable()) {
+                rotateBridgesCounter++
+                if (configuration.getCurrentBridgeType() == BridgeType.SNOWFLAKE) {
+                    val newSnowflakeType = setNextSnowFlakeBridge()
+                    logi("Try next $newSnowflakeType snowflake bridge")
+                }
+            }
+        }
+    }
+
+    private fun setNextSnowFlakeBridge(): RendezvousType {
+        val currentSnowflakeType = configuration.getSnowflakeBridgeType()
+        val nextSnowflakeBridgeType = when (currentSnowflakeType) {
+            RendezvousType.AMP_CACHE -> RendezvousType.AMAZON_SQS
+            RendezvousType.AMAZON_SQS -> RendezvousType.CDN77
+            RendezvousType.CDN77 -> RendezvousType.AMP_CACHE
+        }
+        configuration.setSnowflakeBridgeType(nextSnowflakeBridgeType)
+        return nextSnowflakeBridgeType
+    }
 }
