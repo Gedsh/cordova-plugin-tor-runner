@@ -19,13 +19,16 @@
 
 package pan.alexander.cordova.torrunner.data.configuration
 
+import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultRepository
 import pan.alexander.cordova.torrunner.domain.configuration.RendezvousType
 import pan.alexander.cordova.torrunner.domain.configuration.SnowflakeRepository
 import javax.inject.Inject
 
 private const val SOCKS_ARGUMENT_MAX_LENGTH = 510
 
-class SnowflakeRepositoryImpl @Inject constructor(): SnowflakeRepository {
+class SnowflakeRepositoryImpl @Inject constructor(
+    private val bridgesDefaultRepository: dagger.Lazy<BridgesDefaultRepository>
+): SnowflakeRepository {
 
     override fun getBridgeLines(rendezvousType: RendezvousType): List<String> {
         val bridges = mutableListOf<String>()
@@ -40,7 +43,7 @@ class SnowflakeRepositoryImpl @Inject constructor(): SnowflakeRepository {
                 "stun:$it"
             }
 
-            val bridge = StringBuilder("snowflake $bridgeWithoutIce ice=")
+            val bridge = StringBuilder("$bridgeWithoutIce ice=")
             var counter = 0
             do {
                 bridge.append(stuns[counter]).append(",")
@@ -53,10 +56,7 @@ class SnowflakeRepositoryImpl @Inject constructor(): SnowflakeRepository {
         return bridges
     }
 
-    override fun getBases(): List<String> = listOf(
-        "192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 fingerprint=2B280B23E1107BB62ABFC40DDCC8824814F80A72",
-        "192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA fingerprint=8838024498816A039FCBBAB14E6F40A0843051FA"
-    )
+    override fun getBases(): List<String> = bridgesDefaultRepository.get().getDefaultSnowflakeBridges()
 
     override fun getUrl(rendezvousType: RendezvousType): String =
         when(rendezvousType) {
