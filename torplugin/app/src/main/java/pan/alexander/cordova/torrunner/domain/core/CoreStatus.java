@@ -42,6 +42,7 @@ public final class CoreStatus {
     private volatile CoreState torState = STOPPED;
     private volatile boolean torReady;
     private volatile boolean torConnectionAvailable;
+    private volatile int torLoadingPercent;
 
     @Inject
     CoreStatus(ConfigurationRepository configuration) {
@@ -55,6 +56,9 @@ public final class CoreStatus {
     public void setTorState(CoreState torState) {
         logi("Tor State " + torState);
         this.torState = torState;
+        if (torState != RUNNING) {
+            torLoadingPercent = 0;
+        }
         updateCordovaConfiguration();
     }
 
@@ -65,6 +69,7 @@ public final class CoreStatus {
     public void setTorReady(boolean torReady) {
         this.torReady = torReady;
         if (!torReady) {
+            torLoadingPercent = 0;
             setTorConnectionAvailable(false);
         }
         updateCordovaConfiguration();
@@ -77,6 +82,14 @@ public final class CoreStatus {
     public void setTorConnectionAvailable(boolean torConnectionAvailable) {
         this.torConnectionAvailable = torConnectionAvailable;
         updateCordovaConfiguration();
+    }
+
+    public int getTorLoadingPercent() {
+        return torLoadingPercent;
+    }
+
+    public void setTorLoadingPercent(int torLoadingPercent) {
+        this.torLoadingPercent = torLoadingPercent;
     }
 
     private void updateCordovaConfiguration() {
