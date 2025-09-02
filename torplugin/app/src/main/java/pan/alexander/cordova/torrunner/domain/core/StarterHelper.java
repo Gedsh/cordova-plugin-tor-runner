@@ -21,6 +21,7 @@ package pan.alexander.cordova.torrunner.domain.core;
 
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.RESTARTING;
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.RUNNING;
+import static pan.alexander.cordova.torrunner.domain.core.CoreState.STARTING;
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.STOPPED;
 import static pan.alexander.cordova.torrunner.domain.core.CoreState.STOPPING;
 import static pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_TOR;
@@ -42,10 +43,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
 import pan.alexander.cordova.torrunner.App;
+import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultRepository;
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository;
 import pan.alexander.cordova.torrunner.domain.installer.Installer;
 import pan.alexander.cordova.torrunner.domain.network.TorConnectionCheckerInteractor;
@@ -54,6 +58,8 @@ import pan.alexander.cordova.torrunner.utils.file.FileManager;
 import pan.alexander.cordova.torrunner.utils.portchecker.PortChecker;
 
 public class StarterHelper implements ProcessStarter.OnStdOutputListener {
+
+    private static final int EXTRA_CONNECTION_CHECK_MIN_INTERVAL_SEC = 60;
 
     private final CoreStatus coreStatus;
 
@@ -64,8 +70,9 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
     private final Restarter restarter;
     private final ActionSender actionSender;
     private final TorConnectionCheckerInteractor torConnectionCheckerInteractor;
-    private final int EXTRA_CONNECTION_CHECK_MIN_INTERVAL_SEC = 60;
+    private final BridgesDefaultRepository bridgesDefaultRepository;
     private volatile long lastExtraConnectionCheck;
+    private final Pattern bootstrappedPattern = Pattern.compile("Bootstrapped (\\d+)%");
 
     @Inject
     public StarterHelper(
@@ -76,7 +83,8 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             Installer installer,
             Restarter restarter,
             ActionSender actionSender,
-            TorConnectionCheckerInteractor torConnectionCheckerInteractor
+            TorConnectionCheckerInteractor torConnectionCheckerInteractor,
+            BridgesDefaultRepository bridgesDefaultRepository
     ) {
         this.configuration = configuration;
         this.coreStatus = coreStatus;
@@ -86,6 +94,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
         this.restarter = restarter;
         this.actionSender = actionSender;
         this.torConnectionCheckerInteractor = torConnectionCheckerInteractor;
+        this.bridgesDefaultRepository = bridgesDefaultRepository;
         this.lastExtraConnectionCheck = System.currentTimeMillis();
     }
 
@@ -101,6 +110,10 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             List<String> newLines = new ArrayList<>(lines);
 
             correctObfsModulePath(newLines);
+
+            if (coreStatus.getTorState() == STARTING) {
+                updateDefaultBridgesIfRequired();
+            }
 
             //checkTorPortsForBusyness(newLines); TODO
 
@@ -150,7 +163,6 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
                     }
                 } else {
                     coreStatus.setTorState(STOPPED);
-                    sendTorStoppedToJavaScript();
                 }
 
             }
@@ -210,6 +222,8 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
                 newLine = line.replaceAll("/.+?/libsnowflake.so", configuration.getSnowflakePath());
             } else if (line.contains("ClientTransportPlugin ") && line.contains("/libwebtunnel.so")) {
                 newLine = line.replaceAll("/.+?/libwebtunnel.so", configuration.getWebTunnelPath());
+            } else if (line.contains("ClientTransportPlugin ") && line.contains("/libconjure.so")) {
+                newLine = line.replaceAll("/.+?/libconjure.so", configuration.getConjurePath());
             }
             if (!newLine.equals(line)) {
                 lines.set(i, newLine);
@@ -279,6 +293,10 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
         return TextUtils.join(",", hosts);
     }
 
+    private void updateDefaultBridgesIfRequired() {
+        bridgesDefaultRepository.updateDefaultBridges();
+    }
+
     private void logNativeCrash() {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault());
@@ -307,23 +325,43 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
         installer.reinstallTor();
     }
 
-    private void sendTorStoppedToJavaScript() {
-        //TODO
-    }
-
     @Override
     public void onStdOutput(@NotNull String stdout) {
+
+        updateLoadingPercents(stdout);
+
         if(stdout.endsWith("Bootstrapped 100% (done): Done")) {
-            coreStatus.setTorReady(true);
-            torConnectionCheckerInteractor.checkInternetConnection();
+            torIsConnected();
         } else if ((stdout.endsWith("Ignoring directory request, since no bridge nodes are available yet.")
+                || stdout.endsWith("Delaying directory fetches: No running bridges")
                 || stdout.endsWith("We will try to fetch missing descriptors soon.")
                 || stdout.endsWith("Discarding this circuit.")
                 || stdout.endsWith("Possible compression bomb; abandoning stream.")
-                || stdout.endsWith("Retrying on a new circuit."))
+                || stdout.endsWith("Retrying on a new circuit.")
+                || stdout.endsWith("(waiting for circuit)")
+                || stdout.endsWith("retrying conjure registration: registration failed"))
                 && System.currentTimeMillis() - lastExtraConnectionCheck > EXTRA_CONNECTION_CHECK_MIN_INTERVAL_SEC * 1000) {
             lastExtraConnectionCheck = System.currentTimeMillis();
-            torConnectionCheckerInteractor.checkInternetConnection();
+            suspectTorConnectionIsFailed();
         }
+    }
+
+    private void updateLoadingPercents(String stdout) {
+        Matcher matcher = bootstrappedPattern.matcher(stdout);
+        if (matcher.find()) {
+            String percent = matcher.group(1);
+            if (percent != null) {
+                coreStatus.setTorLoadingPercent(Integer.parseInt(percent));
+            }
+        }
+    }
+
+    private void torIsConnected() {
+        coreStatus.setTorReady(true);
+        torConnectionCheckerInteractor.checkInternetConnection();
+    }
+
+    private void suspectTorConnectionIsFailed() {
+        torConnectionCheckerInteractor.checkInternetConnection();
     }
 }

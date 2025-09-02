@@ -34,6 +34,7 @@ interface ConfigurationRepository {
     fun getObfsPath(): String
     fun getSnowflakePath(): String
     fun getWebTunnelPath(): String
+    fun getConjurePath(): String
     fun getTorSocksPort(): Int
     fun getTorConfigurationDir(): String
     fun getTorConfPath(): String
@@ -42,6 +43,7 @@ interface ConfigurationRepository {
     fun getTorPidPath(): String
     fun getTorDefaultSocksPort(): Int
     fun getTorAssetStream(): InputStream
+    fun getTorDefaultBridgesPath(): String
 
     fun getTorConfiguration(): List<Pair<String, String>>
     fun updateTorConfiguration(
@@ -49,6 +51,8 @@ interface ConfigurationRepository {
         newTorConf: List<Pair<String, String>>
     )
     fun getCurrentBridgeType(): BridgeType
+    fun getCurrentBridges(): List<String>
+    fun setBridges(bridges: List<String>)
     fun getSnowflakeBridgeType(): RendezvousType
     fun setSnowflakeBridgeType(type: RendezvousType)
 

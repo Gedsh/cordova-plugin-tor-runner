@@ -24,6 +24,7 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pan.alexander.cordova.torrunner.domain.configuration.BridgeType
+import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.configuration.RendezvousType
 import pan.alexander.cordova.torrunner.framework.ActionSender
@@ -39,7 +40,7 @@ import kotlin.math.pow
 private const val DELAY_BEFORE_RESTART_TOR_SEC = 10
 private const val DELAY_BEFORE_FULL_RESTART_TOR_SEC = 60
 private const val MIN_DELAY_ROTATE_BRIDGE_MINUTES = 3
-private const val AUTO_CHECK_BRIDGE_COUNT = 3
+private const val EXTRA_DELAY_ROTATE_BRIDGE_MINUTES = 1
 
 @ExperimentalCoroutinesApi
 class TorRestarterReconnector @Inject constructor(
@@ -48,7 +49,8 @@ class TorRestarterReconnector @Inject constructor(
     private val configuration: ConfigurationRepository,
     private val networkChecker: NetworkChecker,
     private val fileManager: FileManager,
-    private val actionSender: ActionSender
+    private val actionSender: ActionSender,
+    private val bridgesDefaultRepository: BridgesDefaultRepository
 ) {
 
     private val scope by lazy {
@@ -78,6 +80,7 @@ class TorRestarterReconnector @Inject constructor(
                 makeTorProgressivePartialRestart()
             } else if (!coreStatus.isTorReady && !isPartialRestartCounterRunning()) {
                 cancelPreviousTasks()
+                rotateBridgesCounter = 0
                 makeTorProgressivePartialRestart()
             }
             if (!isRotateBridgesCounterRunning() && configuration.getCurrentBridgeType() != BridgeType.NONE) {
@@ -102,6 +105,10 @@ class TorRestarterReconnector @Inject constructor(
             delay(
                 1000L * 60 * partialRestartCounter.toDouble().pow(2).toLong()
             )// 1, 4, 9, 16, 25, 36 ... minutes
+            //The counter may be 0 if we use the new auto bridge
+            if (partialRestartCounter == 0) {
+                continue
+            }
             if (coreStatus.isTorReady && !isFullRestartCounterLocked()) {
                 resetCounters()
                 makeTorDelayedFullRestart()
@@ -203,21 +210,49 @@ class TorRestarterReconnector @Inject constructor(
         logi("Start rotating bridges")
         rotateBridgesCounter++
         while (coroutineContext.isActive) {
+
             if (!isNetworkAvailable()) {
                 stopRestarterCounters()
                 break
             }
+
             delay(
-                1000L * 60 * MIN_DELAY_ROTATE_BRIDGE_MINUTES * ceil(rotateBridgesCounter / AUTO_CHECK_BRIDGE_COUNT.toDouble()).toLong()
+                getDelayForRotatingBridges() / 2
             )
+            if (coreStatus.torLoadingPercent > 10) {
+                delay(
+                    getDelayForRotatingBridges() / 2
+                )
+            }
+            if (coreStatus.torLoadingPercent > 65) {
+                delay(
+                    EXTRA_DELAY_ROTATE_BRIDGE_MINUTES * 60 * 1000L
+                )
+            }
+            if (coreStatus.torLoadingPercent > 90) {
+                delay(
+                    EXTRA_DELAY_ROTATE_BRIDGE_MINUTES * 60 * 1000L
+                )
+            }
+
             if (coreStatus.torState == CoreState.RUNNING && !isFullRestartCounterRunning() && isNetworkAvailable()) {
                 rotateBridgesCounter++
-                if (configuration.getCurrentBridgeType() == BridgeType.SNOWFLAKE) {
-                    val newSnowflakeType = setNextSnowFlakeBridge()
-                    logi("Try next $newSnowflakeType snowflake bridge")
+                if (configuration.getCurrentBridgeType() != BridgeType.NONE) {
+                    val nextBridgeType = setNextBridge()
+                    logi("Try next $nextBridgeType bridge")
+                    partialRestartCounter = 0
+                } else {
+                    rotateBridgesCounter = 0
+                    break
                 }
             }
         }
+    }
+
+    private fun setNextBridge(): String {
+        val bridges = bridgesDefaultRepository.getNextBridgesFromAutoQueue()
+        configuration.setBridges(bridges)
+        return bridges.firstOrNull()?.substringBefore(" ") ?: "unknown"
     }
 
     private fun setNextSnowFlakeBridge(): RendezvousType {
@@ -230,4 +265,9 @@ class TorRestarterReconnector @Inject constructor(
         configuration.setSnowflakeBridgeType(nextSnowflakeBridgeType)
         return nextSnowflakeBridgeType
     }
+
+    private fun getDelayForRotatingBridges() =
+        1000L * 60 * MIN_DELAY_ROTATE_BRIDGE_MINUTES * ceil(
+            rotateBridgesCounter / bridgesDefaultRepository.getAutoQueueLength().toDouble()
+        ).toLong()
 }

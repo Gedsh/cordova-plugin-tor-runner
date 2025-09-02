@@ -19,13 +19,16 @@
 
 package pan.alexander.cordova.torrunner.domain.configuration
 
-enum class BridgeType {
-    NONE,
-    VANILLA,
-    OBFS3,
-    OBFS4,
-    MEEK_LITE,
-    SNOWFLAKE,
-    WEBTUNNEL,
-    CONJURE
+interface BridgesDefaultRepository {
+    fun getDefaultBridges(): List<String>
+    fun getDefaultObfs4Bridges(): List<String>
+    fun getDefaultObfs3Bridges(): List<String>
+    fun getDefaultMeekLiteBridges(): List<String>
+    fun getDefaultSnowflakeBridges(): List<String>
+    fun getDefaultConjureBridges(): List<String>
+    fun getDefaultWebTunnelBridges(): List<String>
+    fun getDefaultVanillaBridges(): List<String>
+    fun getNextBridgesFromAutoQueue(): List<String>
+    fun getAutoQueueLength(): Int
+    fun updateDefaultBridges()
 }

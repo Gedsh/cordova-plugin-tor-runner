@@ -41,6 +41,7 @@ class ConfigurationManager @Inject constructor(
     val obfsPath = "$nativeLibPath/libobfs4proxy.so"
     val snowflakePath = "$nativeLibPath/libsnowflake.so"
     val webTunnelPath = "$nativeLibPath/libwebtunnel.so"
+    val conjurePath = "$nativeLibPath/libconjure.so"
 
     val torDefaultSocksPort = 9051
 
@@ -51,6 +52,8 @@ class ConfigurationManager @Inject constructor(
     val torPidPath by lazy { "$appDataDir/tor.pid" }
 
     val torAssetsStream by lazy { context.assets.open("tor.mp3") }
+
+    val torDefaultBridgesPath by lazy { "$appDataDir/app_data/tor/bridges_default.lst" }
 
     val reverseProxyPath = "$nativeLibPath/libreverseproxy.so"
 

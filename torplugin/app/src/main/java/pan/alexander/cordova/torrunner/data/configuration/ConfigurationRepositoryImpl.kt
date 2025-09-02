@@ -67,6 +67,8 @@ class ConfigurationRepositoryImpl @Inject constructor(
 
     override fun getWebTunnelPath() = configurationManager.webTunnelPath
 
+    override fun getConjurePath() = configurationManager.conjurePath
+
     override fun getTorSocksPort() = getTorConfiguration().find {
         it.first == "SOCKSPort"
     }?.second?.substringAfterLast(":")
@@ -89,6 +91,8 @@ class ConfigurationRepositoryImpl @Inject constructor(
     override fun getTorDefaultSocksPort() = configurationManager.torDefaultSocksPort
 
     override fun getTorAssetStream() = configurationManager.torAssetsStream
+
+    override fun getTorDefaultBridgesPath() = configurationManager.torDefaultBridgesPath
 
     override fun getTorConfiguration(): List<Pair<String, String>> {
         val result = mutableListOf<Pair<String, String>>()
@@ -163,6 +167,67 @@ class ConfigurationRepositoryImpl @Inject constructor(
         return bridgeType
     }
 
+    override fun getCurrentBridges(): List<String> {
+        val bridges = mutableListOf<String>()
+
+        val torConf = getTorConfiguration()
+
+        for (confLine in torConf) {
+            if (confLine.first == "Bridge") {
+                bridges.add(confLine.second)
+            }
+        }
+
+        return bridges
+    }
+
+    override fun setBridges(bridges: List<String>) = try {
+        val torConf = getTorConfiguration()
+        var newTorConf = clearUseTorBridgesFromTorConf(torConf)
+        newTorConf = addUseBridgesToTorConf(newTorConf, bridges)
+        updateTorConfiguration(torConf, newTorConf)
+    } catch (e: Exception) {
+        loge("ConfigurationRepository setBridges $bridges", e)
+    }
+
+    private fun addDoNotUseBridgesToTorConf(
+        torConf: MutableList<Pair<String, String>>
+    ): MutableList<Pair<String, String>> {
+        torConf.add("UseBridges" to "0")
+        return torConf
+    }
+
+    private fun addUseBridgesToTorConf(
+        torConf: MutableList<Pair<String, String>>,
+        bridges: List<String>
+    ) = try {
+
+        val bridgeType = if (bridges.isEmpty()) {
+            BridgeType.NONE
+        } else {
+            getBridgeTypeFromLine(bridges.first())
+        }
+
+        if (bridgeType == BridgeType.NONE) {
+            torConf.add("UseBridges" to "0")
+        } else {
+            with(torConf) {
+                add("UseBridges" to "1")
+                getClientTransportPlugin(bridgeType)?.let {
+                    add(it)
+                }
+                bridges.forEach {
+                    add("Bridge" to it)
+                }
+            }
+        }
+
+        torConf
+    } catch (e: Exception) {
+        loge("ConfigurationRepository addUseBridgesToTorConf $bridges", e)
+        torConf.toMutableList()
+    }
+
     override fun getSnowflakeBridgeType(): RendezvousType {
         val torConf = getTorConfiguration()
 
@@ -188,7 +253,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
 
     override fun setSnowflakeBridgeType(type: RendezvousType) = try {
         val torConf = getTorConfiguration()
-        val newTorConf = setUseSnowflakeBridges(torConf.toList(), type)
+        val newTorConf = changeSnowFlakeBridgesType(torConf.toMutableList(), type)
         updateTorConfiguration(torConf, newTorConf)
     } catch (e: Exception) {
         loge("ConfigurationRepository setSnowflakeBridgeType $type", e)
@@ -213,7 +278,9 @@ class ConfigurationRepositoryImpl @Inject constructor(
             if (confLine.first == "SOCKSPort") {
                 torPort = getTorPortFromLine(confLine.second)
             } else if (confLine.first == "Bridge") {
-                bridgeType = getBridgeTypeFromLine(confLine.second)
+                //TODO use the correct bridge type
+                //bridgeType = getBridgeTypeFromLine(confLine.second)
+                bridgeType = BridgeType.SNOWFLAKE
             }
         }
 
@@ -230,7 +297,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
 
     override fun saveTorConfigurationFromCordova(json: JSONObject) = try {
         val torConf = getTorConfiguration()
-        var newTorConf = torConf.toList()
+        var newTorConf = clearUseTorBridgesFromTorConf(torConf.toMutableList())
         if (json.has("torMode")) {
             setTorMode(json.getString("torMode"))
         }
@@ -245,9 +312,10 @@ class ConfigurationRepositoryImpl @Inject constructor(
                 BridgeType.NONE
             }
             if (type == BridgeType.SNOWFLAKE) {
-                newTorConf = setUseSnowflakeBridges(newTorConf)
+                val bridges = snowflakeRepository.getBridgeLines(RendezvousType.AMP_CACHE)
+                newTorConf = addUseBridgesToTorConf(newTorConf, bridges)
             } else {
-                newTorConf = clearUseBridges(newTorConf)
+                newTorConf = addDoNotUseBridgesToTorConf(newTorConf)
             }
         }
         updateTorConfiguration(torConf, newTorConf)
@@ -255,62 +323,42 @@ class ConfigurationRepositoryImpl @Inject constructor(
         loge("ConfigurationRepository saveTorConfigurationFromCordova", e)
     }
 
-    private fun clearUseBridges(
+    private fun clearUseTorBridgesFromTorConf(
         torConf: List<Pair<String, String>>
-    ): List<Pair<String, String>> = try {
+    ): MutableList<Pair<String, String>> = try {
         val newTorConf = mutableListOf<Pair<String, String>>()
 
-        for (i in torConf.indices) {
-            val pair = torConf[i]
-            if (pair.first == "UseBridges") {
-                newTorConf.add(Pair("UseBridges", "0"))
-            } else if (pair.first != "ClientTransportPlugin" && pair.first != "Bridge") {
-                newTorConf.add(pair)
+        for (conf in torConf) {
+            if (conf.first != "UseBridges"
+                && conf.first != "ClientTransportPlugin"
+                && conf.first != "Bridge"
+            ) {
+                newTorConf.add(conf)
             }
         }
 
         newTorConf
     } catch (e: Exception) {
         loge("ConfigurationRepository clearUseBridges", e)
-        torConf
+        torConf.toMutableList()
     }
 
-    private fun setUseSnowflakeBridges(
-        torConf: List<Pair<String, String>>,
-        type: RendezvousType = RendezvousType.AMP_CACHE
-    ): List<Pair<String, String>> = try {
-
-        val newTorConf = mutableListOf<Pair<String, String>>()
-
-        for (i in torConf.indices) {
-            val pair = torConf[i]
-            if (pair.first != "UseBridges"
-                && pair.first != "ClientTransportPlugin"
-                && pair.first != "Bridge"
-            ) {
-                newTorConf.add(pair)
-            }
-        }
-
+    private fun changeSnowFlakeBridgesType(
+        torConf: MutableList<Pair<String, String>>,
+        type: RendezvousType
+    ): MutableList<Pair<String, String>> = try {
         val bridges = snowflakeRepository.getBridgeLines(type)
-        with(newTorConf) {
-            add("UseBridges" to "1")
-            add("ClientTransportPlugin" to "snowflake exec ${configurationManager.snowflakePath}")
-            bridges.forEach {
-                add("Bridge" to it)
-            }
-        }
-
-        newTorConf
+        val conf = clearUseTorBridgesFromTorConf(torConf)
+        addUseBridgesToTorConf(conf, bridges)
     } catch (e: Exception) {
         loge("ConfigurationRepository setUseSnowflakeBridges", e)
         torConf
     }
 
     private fun setTorSocksPort(
-        torConf: List<Pair<String, String>>,
+        torConf: MutableList<Pair<String, String>>,
         port: String
-    ): List<Pair<String, String>> = try {
+    ): MutableList<Pair<String, String>> = try {
 
         val newPort = port.takeIf {
             it.matches(numberRegex)
@@ -318,19 +366,18 @@ class ConfigurationRepositoryImpl @Inject constructor(
             it <= MAX_PORT_NUMBER
         } ?: 0
 
-        val newTorConf = torConf.toMutableList()
         if (newPort != 0) {
-            for (i in newTorConf.indices) {
-                val pair = newTorConf[i]
+            for (i in torConf.indices) {
+                val pair = torConf[i]
                 if (pair.first == "SOCKSPort") {
                     val currentPort = pair.second.substringAfterLast(":")
-                    newTorConf[i] = Pair(
+                    torConf[i] = Pair(
                         "SOCKSPort",
                         pair.second.replace(currentPort, newPort.toString())
                     )
                 } else if (pair.first == "#SOCKSPort") {
                     val currentPort = pair.second.substringAfterLast(":")
-                    newTorConf[i] = Pair(
+                    torConf[i] = Pair(
                         "#SOCKSPort",
                         pair.second.replace(currentPort, newPort.toString())
                     )
@@ -338,7 +385,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
             }
         }
 
-        newTorConf
+        torConf
     } catch (e: Exception) {
         loge("ConfigurationRepository setTorSocksPort", e)
         torConf
@@ -369,8 +416,17 @@ class ConfigurationRepositoryImpl @Inject constructor(
             "meek_lite" -> BridgeType.MEEK_LITE
             "snowflake" -> BridgeType.SNOWFLAKE
             "webtunnel" -> BridgeType.WEBTUNNEL
+            "conjure" -> BridgeType.CONJURE
             else -> BridgeType.VANILLA
         }
 
-
+    private fun getClientTransportPlugin(bridgeType: BridgeType) = when(bridgeType) {
+        BridgeType.OBFS3, BridgeType.OBFS4, BridgeType.MEEK_LITE -> configurationManager.obfsPath
+        BridgeType.WEBTUNNEL -> configurationManager.webTunnelPath
+        BridgeType.SNOWFLAKE -> configurationManager.snowflakePath
+        BridgeType.CONJURE -> configurationManager.conjurePath
+        else -> null
+    }?.let {
+        "ClientTransportPlugin" to "${bridgeType.name.lowercase()} exec $it"
+    }
 }
