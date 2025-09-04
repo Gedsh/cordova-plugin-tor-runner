@@ -297,7 +297,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
 
     override fun saveTorConfigurationFromCordova(json: JSONObject) = try {
         val torConf = getTorConfiguration()
-        var newTorConf = clearUseTorBridgesFromTorConf(torConf.toMutableList())
+        var newTorConf = torConf.toMutableList()
         if (json.has("torMode")) {
             setTorMode(json.getString("torMode"))
         }
@@ -306,6 +306,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
         }
         if (json.has("bridgeType")) {
             //TODO use other bridges than snowflake
+            newTorConf = clearUseTorBridgesFromTorConf(newTorConf)
             val type = try {
                 BridgeType.valueOf(json.getString("bridgeType"))
             } catch (_: IllegalArgumentException) {
