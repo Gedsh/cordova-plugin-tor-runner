@@ -53,9 +53,11 @@ public class Killer {
     private final CoreStatus coreStatus;
 
     private final ReentrantLock torLock;
+    private final ReentrantLock torCheckerLock;
     private final ReentrantLock reverseProxyLock;
 
     private static Thread torThread;
+    private static Thread torCheckerThread;
     private static Thread reverseProxyThread;
 
     @Inject
@@ -70,6 +72,7 @@ public class Killer {
         this.fileManager = fileManager;
         this.coreStatus = coreStatus;
         torLock = new ReentrantLock();
+        torCheckerLock = new ReentrantLock();
         reverseProxyLock = new ReentrantLock();
     }
 
@@ -148,6 +151,48 @@ public class Killer {
                 loge("Killer getTorKillerRunnable", e);
             } finally {
                 torLock.unlock();
+            }
+
+        };
+    }
+
+    public Thread getTorCheckerThread() {
+        return torCheckerThread;
+    }
+
+    public void setTorCheckerThread(Thread torCheckerThread) {
+        Killer.torCheckerThread = torCheckerThread;
+    }
+
+    public Runnable getTorCheckerKillerRunnable() {
+        return () -> {
+
+            torCheckerLock.lock();
+
+            try {
+                String torPid = readPidFile(configuration.getTorCheckerPidPath());
+                if (torPid.isBlank()) {
+                    return;
+                }
+
+                boolean result = doThreeAttemptsToStopModule(
+                        configuration.getTorPath(),
+                        torPid,
+                        torCheckerThread
+                );
+
+                if (!result && torCheckerThread != null && torCheckerThread.isAlive()) {
+                    logw("Killer cannot stop Tor checker. Stop with interrupt thread!");
+                    makeDelay(5);
+                    stopModuleWithInterruptThread(torCheckerThread);
+                } else if (!result) {
+                    logw("Killer cannot stop Tor checker. Thread is null");
+                }
+
+            } catch (Exception e) {
+                loge("Killer getTorCheckerKillerRunnable", e);
+            } finally {
+                torCheckerLock.unlock();
             }
 
         };

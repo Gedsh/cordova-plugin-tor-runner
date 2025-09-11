@@ -31,6 +31,7 @@ import pan.alexander.cordova.torrunner.App
 import pan.alexander.cordova.torrunner.domain.core.CoreState
 import pan.alexander.cordova.torrunner.domain.core.CoreStatus
 import pan.alexander.cordova.torrunner.domain.core.ReverseProxyManager
+import pan.alexander.cordova.torrunner.domain.core.TorCheckerManager
 import pan.alexander.cordova.torrunner.domain.core.TorManager
 import pan.alexander.cordova.torrunner.domain.installer.Installer
 import pan.alexander.cordova.torrunner.domain.network.NetworkRepository
@@ -52,6 +53,8 @@ class CoreService : Service() {
 
     @Inject
     lateinit var torManager: TorManager
+    @Inject
+    lateinit var torCheckerManager: TorCheckerManager
     @Inject
     lateinit var reverseProxyManager: ReverseProxyManager
     @Inject
@@ -105,6 +108,8 @@ class CoreService : Service() {
         if (coreStatus.torState != CoreState.STOPPED) {
             stopTor().also { stopProxy() }
         }
+
+        stopTorChecker()
 
         scope.coroutineContext.cancelChildren()
 
@@ -163,6 +168,10 @@ class CoreService : Service() {
     private fun reloadTorConfiguration() = scope.launch {
         waitWhileTorConfigurationInstalling()
         torManager.reloadTorConfiguration()
+    }
+
+    private fun stopTorChecker() {
+        torCheckerManager.stopTorChecker()
     }
 
     private fun startProxy() {

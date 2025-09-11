@@ -235,6 +235,9 @@
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/StarterHelper.java"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
         <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/TorCheckerManager.java"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
+        <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/TorManager.java"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
         <source-file

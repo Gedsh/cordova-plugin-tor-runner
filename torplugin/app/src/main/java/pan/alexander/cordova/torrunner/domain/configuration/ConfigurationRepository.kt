@@ -38,9 +38,12 @@ interface ConfigurationRepository {
     fun getTorSocksPort(): Int
     fun getTorConfigurationDir(): String
     fun getTorConfPath(): String
+    fun getTorCheckerConfPath(): String
     fun getTorGeoipPath(): String
     fun getTorGeoip6Path(): String
     fun getTorPidPath(): String
+    fun getTorCheckerPidPath(): String
+    fun getTorCheckerDataPath(): String
     fun getTorDefaultSocksPort(): Int
     fun getTorAssetStream(): InputStream
     fun getTorDefaultBridgesPath(): String
@@ -50,6 +53,7 @@ interface ConfigurationRepository {
         originalTorConf: List<Pair<String, String>>,
         newTorConf: List<Pair<String, String>>
     )
+    fun createTorCheckerConfiguration(bridges: List<String>)
     fun getCurrentBridgeType(): BridgeType
     fun getCurrentBridges(): List<String>
     fun setBridges(bridges: List<String>)

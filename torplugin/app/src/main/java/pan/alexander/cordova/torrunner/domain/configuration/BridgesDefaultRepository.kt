@@ -29,6 +29,11 @@ interface BridgesDefaultRepository {
     fun getDefaultWebTunnelBridges(): List<String>
     fun getDefaultVanillaBridges(): List<String>
     fun getNextBridgesFromAutoQueue(): List<String>
+    fun getNextBridgesFromCheckingQueue(currentBridges: List<String>): List<String>
+    fun getCheckFailedBridges(): List<String>
+    fun addCheckFailedBridge(bridgeAddress: String)
+    fun clearCheckFailedBridges()
     fun getAutoQueueLength(): Int
+    fun getCheckQueueLength(): Int
     fun updateDefaultBridges()
 }

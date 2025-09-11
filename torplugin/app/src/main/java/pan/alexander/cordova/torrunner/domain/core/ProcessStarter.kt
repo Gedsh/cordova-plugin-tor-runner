@@ -20,7 +20,6 @@
 package pan.alexander.cordova.torrunner.domain.core
 
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
-import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import java.io.*
 
 class ProcessStarter(private val libraryDir: String) {
@@ -43,7 +42,6 @@ class ProcessStarter(private val libraryDir: String) {
                 while (line != null) {
                     stdout.add(line)
                     stdOutputListener?.onStdOutput(line)
-                    logi(line)
                     line = bufferedReader.readLine()
                 }
             }

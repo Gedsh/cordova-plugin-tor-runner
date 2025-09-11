@@ -73,6 +73,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
     private final BridgesDefaultRepository bridgesDefaultRepository;
     private volatile long lastExtraConnectionCheck;
     private final Pattern bootstrappedPattern = Pattern.compile("Bootstrapped (\\d+)%");
+    private final Pattern bridgeFailedPattern = Pattern.compile("Proxy Client: unable to connect OR connection \\(handshaking \\(proxy\\)\\) with (.+:\\d+) .+ \\(\"general SOCKS server failure\"\\)");
 
     @Inject
     public StarterHelper(
@@ -168,6 +169,43 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             }
 
             coreStatus.setTorReady(false);
+
+            Thread.currentThread().interrupt();
+        };
+    }
+
+    Runnable getTorCheckerStarterRunnable(List<String> bridges) {
+        return () -> {
+
+            coreStatus.setTorCheckerLoadingPercent(0);
+
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+
+            String torCmdString;
+            final CommandResult shellResult;
+
+            configuration.createTorCheckerConfiguration(bridges);
+
+            torCmdString = configuration.getTorPath()
+                    + " -f " + configuration.getTorCheckerConfPath()
+                    + " -pidfile " + configuration.getTorCheckerPidPath();
+            String fakeHosts = getFakeSniHosts();
+            if (!fakeHosts.isEmpty()) {
+                torCmdString += " -fake-hosts " + fakeHosts;
+            }
+
+            ProcessStarter starter = new ProcessStarter(configuration.getNativeLibPath());
+            starter.setStdOutputListener(this::onCheckerStdOutput);
+            shellResult = starter.startProcess(torCmdString);
+
+            if (shellResult.isSuccessful()) {
+                logi("Tor checker is stopped successfully");
+            } else {
+                loge("Tor checker fault: " + shellResult.exitCode
+                        + " ERR=" + shellResult.getStderr() + " OUT=" + shellResult.getStdout());
+            }
+
+            coreStatus.setTorCheckerLoadingPercent(0);
 
             Thread.currentThread().interrupt();
         };
@@ -344,6 +382,8 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             lastExtraConnectionCheck = System.currentTimeMillis();
             suspectTorConnectionIsFailed();
         }
+
+        logi("[TOR] " + stdout);
     }
 
     private void updateLoadingPercents(String stdout) {
@@ -352,6 +392,30 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             String percent = matcher.group(1);
             if (percent != null) {
                 coreStatus.setTorLoadingPercent(Integer.parseInt(percent));
+            }
+        }
+    }
+
+    private void onCheckerStdOutput(String stdout) {
+        updateCheckerLoadingPercents(stdout);
+
+        Matcher matcher = bridgeFailedPattern.matcher(stdout);
+        if (matcher.find()) {
+            String bridgeAddress = matcher.group(1);
+            if (bridgeAddress != null) {
+                bridgesDefaultRepository.addCheckFailedBridge(bridgeAddress);
+            }
+        }
+
+        logi("[TOR:CHECKER] " + stdout);
+    }
+
+    private void updateCheckerLoadingPercents(String stdout) {
+        Matcher matcher = bootstrappedPattern.matcher(stdout);
+        if (matcher.find()) {
+            String percent = matcher.group(1);
+            if (percent != null) {
+                coreStatus.setTorCheckerLoadingPercent(Integer.parseInt(percent));
             }
         }
     }

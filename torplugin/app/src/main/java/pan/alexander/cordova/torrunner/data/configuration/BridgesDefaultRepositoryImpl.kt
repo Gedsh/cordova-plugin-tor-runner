@@ -25,6 +25,7 @@ import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultReposi
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.configuration.RendezvousType
 import pan.alexander.cordova.torrunner.domain.configuration.SnowflakeRepository
+import pan.alexander.cordova.torrunner.utils.file.FileManager
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logw
@@ -35,11 +36,16 @@ import java.io.OutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class BridgesDefaultRepositoryImpl @Inject constructor(
     private val configuration: ConfigurationRepository,
-    private val snowflakeRepository: SnowflakeRepository
+    private val snowflakeRepository: SnowflakeRepository,
+    private val fileManager: FileManager
 ) : BridgesDefaultRepository {
+
+    private val failedBridgesAccordingTorLog by lazy { mutableListOf<String>() }
 
     private val autoBridgesQueue by lazy {
         val queue = mutableListOf<List<String>>()
@@ -65,6 +71,22 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         queue
     }
 
+    private val checkBridgesQueue by lazy {
+        val queue = mutableListOf<List<String>>()
+
+        val obfs3Bridges = getDefaultObfs3Bridges()
+        val obfs4Bridges = getDefaultObfs4Bridges().shuffled().take(3)
+        val webTunnelBridges = getDefaultWebTunnelBridges()
+
+        with(queue) {
+            add(webTunnelBridges)
+            add(obfs3Bridges)
+            add(obfs4Bridges)
+        }
+
+        queue
+    }
+
     override fun getNextBridgesFromAutoQueue(): List<String> {
         val currentBridges = configuration.getCurrentBridges()
         val queue = autoBridgesQueue
@@ -82,7 +104,48 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         return queue[0]
     }
 
+    override fun getNextBridgesFromCheckingQueue(currentBridges: List<String>): List<String> {
+        val checkedBridges = currentBridges.ifEmpty {
+            getLastCheckedBridges()
+        }
+        val queue = checkBridgesQueue
+        for (index in queue.indices) {
+            val bridges = queue[index]
+            if (checkedBridges.size == bridges.size && checkedBridges.containsAll(bridges)) {
+                return if (index < queue.size - 1) {
+                    queue[index + 1]
+                } else {
+                    queue[0]
+                }
+            }
+        }
+        logw("BridgesDefaultRepository unable to check next bridge")
+        return queue[0]
+    }
+
+    private fun getLastCheckedBridges(): List<String> = try {
+        fileManager.readFile(configuration.getTorCheckerConfPath()).filter {
+            it.startsWith("Bridge ")
+        }.map {
+            it.removePrefix("Bridge ")
+        }
+    } catch (e: Exception) {
+        loge("BridgesDefaultRepository getLastCheckedBridges", e)
+        emptyList()
+    }
+
+    override fun getCheckFailedBridges(): List<String> = failedBridgesAccordingTorLog
+
+    override fun addCheckFailedBridge(bridgeAddress: String) {
+        failedBridgesAccordingTorLog.add(bridgeAddress)
+    }
+
+    override fun clearCheckFailedBridges() {
+        failedBridgesAccordingTorLog.clear()
+    }
+
     override fun getAutoQueueLength(): Int = autoBridgesQueue.size
+    override fun getCheckQueueLength(): Int = checkBridgesQueue.size
 
     override fun getDefaultBridges(): List<String> =
         File(configuration.getTorDefaultBridgesPath()).readLines()

@@ -43,6 +43,7 @@ public final class CoreStatus {
     private volatile boolean torReady;
     private volatile boolean torConnectionAvailable;
     private volatile int torLoadingPercent;
+    private volatile int torCheckerLoadingPercent;
 
     @Inject
     CoreStatus(ConfigurationRepository configuration) {
@@ -90,6 +91,14 @@ public final class CoreStatus {
 
     public void setTorLoadingPercent(int torLoadingPercent) {
         this.torLoadingPercent = torLoadingPercent;
+    }
+
+    public int getTorCheckerLoadingPercent() {
+        return torCheckerLoadingPercent;
+    }
+
+    public void setTorCheckerLoadingPercent(int torCheckerLoadingPercent) {
+        this.torCheckerLoadingPercent = torCheckerLoadingPercent;
     }
 
     private void updateCordovaConfiguration() {

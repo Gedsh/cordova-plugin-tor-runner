@@ -35,6 +35,7 @@ import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import java.io.File
 import java.lang.Exception
 import javax.inject.Inject
+import kotlin.collections.first
 import kotlin.text.matches
 import kotlin.text.substringAfter
 import kotlin.text.toInt
@@ -82,11 +83,17 @@ class ConfigurationRepositoryImpl @Inject constructor(
 
     override fun getTorConfPath() = configurationManager.torConfPath
 
+    override fun getTorCheckerConfPath() = configurationManager.torCheckerConfPath
+
     override fun getTorGeoipPath() = configurationManager.torGeoipPath
 
     override fun getTorGeoip6Path() = configurationManager.torGeoip6Path
 
     override fun getTorPidPath() = configurationManager.torPidPath
+
+    override fun getTorCheckerPidPath() = configurationManager.torCheckerPidPath
+
+    override fun getTorCheckerDataPath() = configurationManager.torCheckerDataDir
 
     override fun getTorDefaultSocksPort() = configurationManager.torDefaultSocksPort
 
@@ -429,5 +436,43 @@ class ConfigurationRepositoryImpl @Inject constructor(
         else -> null
     }?.let {
         "ClientTransportPlugin" to "${bridgeType.name.lowercase()} exec $it"
+    }
+
+    override fun createTorCheckerConfiguration(bridges: List<String>) {
+        val conf = mutableListOf<String>().apply {
+            add("RunAsDaemon 0")
+            add("AvoidDiskWrites 1")
+            add("AutomapHostsOnResolve 1")
+            add("AutomapHostsSuffixes .exit, .onion")
+            add("SOCKSPort 0")
+            add("HardwareAccel 1")
+            add("Schedulers Vanilla")
+            add("ClientOnly 1")
+            add("DataDirectory ${getTorCheckerDataPath()}")
+            add("Log notice stdout")
+            add("ConnectionPadding 1")
+            add("ReducedConnectionPadding 1")
+            add("ClientUseIPv4 1")
+            add("ClientUseIPv6 1")
+        }
+
+        val bridgeType = if (bridges.isEmpty()) {
+            BridgeType.NONE
+        } else {
+            getBridgeTypeFromLine(bridges.first())
+        }
+        if (bridgeType != BridgeType.NONE) {
+            getClientTransportPlugin(bridgeType)?.run { "$first $second" }?.let {
+                conf.add("UseBridges 1")
+                conf.add(it)
+            } ?: conf.add("UseBridges 0")
+            for (bridge in bridges) {
+                conf.add("Bridge $bridge")
+            }
+        } else {
+            conf.add("UseBridges 0")
+        }
+
+        fileManager.rewriteFile(configurationManager.torCheckerConfPath, conf)
     }
 }

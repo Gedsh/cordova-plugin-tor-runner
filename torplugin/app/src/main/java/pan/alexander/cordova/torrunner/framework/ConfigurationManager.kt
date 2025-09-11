@@ -47,9 +47,12 @@ class ConfigurationManager @Inject constructor(
 
     val torConfigurationDir by lazy { "$appDataDir/app_data/tor" }
     val torConfPath by lazy { "$torConfigurationDir/tor.conf" }
+    val torCheckerConfPath by lazy { "$torConfigurationDir/tor_checker.conf" }
     val torGeoipPath by lazy { "$torConfigurationDir/geoip" }
     val torGeoip6Path by lazy { "$torConfigurationDir/geoip6" }
     val torPidPath by lazy { "$appDataDir/tor.pid" }
+    val torCheckerPidPath by lazy { "$appDataDir/tor_checker.pid" }
+    val torCheckerDataDir by lazy { "$appDataDir/tor_checker_data" }
 
     val torAssetsStream by lazy { context.assets.open("tor.mp3") }
 
