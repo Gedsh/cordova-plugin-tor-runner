@@ -38,11 +38,11 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,6 +53,8 @@ import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultReposi
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository;
 import pan.alexander.cordova.torrunner.domain.installer.Installer;
 import pan.alexander.cordova.torrunner.domain.network.TorConnectionCheckerInteractor;
+import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository;
+import pan.alexander.cordova.torrunner.domain.sni.SniRepository;
 import pan.alexander.cordova.torrunner.framework.ActionSender;
 import pan.alexander.cordova.torrunner.utils.file.FileManager;
 import pan.alexander.cordova.torrunner.utils.portchecker.PortChecker;
@@ -71,9 +73,12 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
     private final ActionSender actionSender;
     private final TorConnectionCheckerInteractor torConnectionCheckerInteractor;
     private final BridgesDefaultRepository bridgesDefaultRepository;
+    private final SniRepository sniRepository;
+    private final PreferenceRepository preferences;
     private volatile long lastExtraConnectionCheck;
     private final Pattern bootstrappedPattern = Pattern.compile("Bootstrapped (\\d+)%");
     private final Pattern bridgeFailedPattern = Pattern.compile("Proxy Client: unable to connect OR connection \\(handshaking \\(proxy\\)\\) with (.+:\\d+) .+ \\(\"general SOCKS server failure\"\\)");
+    private final Pattern vanillaPridgePattern = Pattern.compile("^Bridge (\\d|\\[)");
 
     @Inject
     public StarterHelper(
@@ -85,7 +90,9 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             Restarter restarter,
             ActionSender actionSender,
             TorConnectionCheckerInteractor torConnectionCheckerInteractor,
-            BridgesDefaultRepository bridgesDefaultRepository
+            BridgesDefaultRepository bridgesDefaultRepository,
+            SniRepository sniRepository,
+            PreferenceRepository preferences
     ) {
         this.configuration = configuration;
         this.coreStatus = coreStatus;
@@ -96,6 +103,8 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
         this.actionSender = actionSender;
         this.torConnectionCheckerInteractor = torConnectionCheckerInteractor;
         this.bridgesDefaultRepository = bridgesDefaultRepository;
+        this.sniRepository = sniRepository;
+        this.preferences = preferences;
         this.lastExtraConnectionCheck = System.currentTimeMillis();
     }
 
@@ -118,8 +127,6 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
 
             //checkTorPortsForBusyness(newLines); TODO
 
-            boolean webTunnelUsed = isWebTunnelBridgesUsed(newLines);
-
             if (lines.size() != newLines.size() || !new HashSet<>(lines).containsAll(newLines)) {
                 saveTorConfiguration(newLines);
             }
@@ -127,9 +134,12 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             torCmdString = configuration.getTorPath()
                     + " -f " + configuration.getTorConfPath()
                     + " -pidfile " + configuration.getTorPidPath();
-            String fakeHosts = getFakeSniHosts();
-            if (!fakeHosts.isEmpty() && !webTunnelUsed) {
-                torCmdString += " -fake-hosts " + fakeHosts;
+            List<String> fakeHosts = Collections.emptyList();
+            if (isVanillaBridgesUsed(newLines)) {
+                fakeHosts = preferences.getLastSni();
+            }
+            if (!fakeHosts.isEmpty()) {
+                torCmdString += " -fake-hosts " + TextUtils.join(",", fakeHosts);
             }
 
             logi("Tor is listening on port " + configuration.getTorSocksPort());
@@ -184,14 +194,19 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             String torCmdString;
             final CommandResult shellResult;
 
-            configuration.createTorCheckerConfiguration(bridges);
+            List<String> torConf = configuration.createAndSaveTorCheckerConfiguration(bridges);
 
             torCmdString = configuration.getTorPath()
                     + " -f " + configuration.getTorCheckerConfPath()
                     + " -pidfile " + configuration.getTorCheckerPidPath();
-            String fakeHosts = getFakeSniHosts();
+
+            List<String> fakeHosts = Collections.emptyList();
+            if (isVanillaBridgesUsed(torConf)) {
+                fakeHosts = getFakeSniHosts();
+            }
+            preferences.setLastSni(fakeHosts);
             if (!fakeHosts.isEmpty()) {
-                torCmdString += " -fake-hosts " + fakeHosts;
+                torCmdString += " -fake-hosts " + TextUtils.join(",", fakeHosts);
             }
 
             ProcessStarter starter = new ProcessStarter(configuration.getNativeLibPath());
@@ -280,19 +295,22 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
 
     }
 
-    private boolean isWebTunnelBridgesUsed(List<String> torConf) {
+    private boolean isVanillaBridgesUsed(List<String> torConf) {
         boolean bridgesUsed = false;
-        boolean webTunnelUsed = false;
+        boolean vanillaUsed = false;
 
         for (String line : torConf) {
             if (line.contains("UseBridges 1")) {
                 bridgesUsed = true;
-            } else if (bridgesUsed && line.startsWith("Bridge webtunnel")) {
-                webTunnelUsed = true;
+            } else if (bridgesUsed && line.startsWith("Bridge")) {
+                Matcher matcher = vanillaPridgePattern.matcher(line);
+                if (matcher.find()) {
+                    vanillaUsed = true;
+                }
                 break;
             }
         }
-        return webTunnelUsed;
+        return vanillaUsed;
     }
 
     private void fixTorProxyPort(List<String> lines, String proxyPort) {
@@ -319,16 +337,8 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
         fileManager.rewriteFile(configuration.getTorConfPath(), lines);
     }
 
-    private String getFakeSniHosts() {
-        Set<String> hosts = new HashSet<>();
-        hosts.add("play.googleapis.com");
-        hosts.add("drive.google.com");
-        hosts.add("cdn.ampproject.org");
-        hosts.add("api.github.com");
-        hosts.add("ajax.aspnetcdn.com");
-        hosts.add("verizon.com");
-        hosts.add("eset.com");
-        return TextUtils.join(",", hosts);
+    private List<String> getFakeSniHosts() {
+        return sniRepository.getFakeSniHosts();
     }
 
     private void updateDefaultBridgesIfRequired() {
@@ -368,7 +378,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
 
         updateLoadingPercents(stdout);
 
-        if(stdout.endsWith("Bootstrapped 100% (done): Done")) {
+        if (stdout.endsWith("Bootstrapped 100% (done): Done")) {
             torIsConnected();
         } else if ((stdout.endsWith("Ignoring directory request, since no bridge nodes are available yet.")
                 || stdout.endsWith("Delaying directory fetches: No running bridges")

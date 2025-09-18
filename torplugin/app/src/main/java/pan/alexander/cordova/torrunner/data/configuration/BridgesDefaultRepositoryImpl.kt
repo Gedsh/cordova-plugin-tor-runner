@@ -25,6 +25,7 @@ import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultReposi
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.configuration.RendezvousType
 import pan.alexander.cordova.torrunner.domain.configuration.SnowflakeRepository
+import pan.alexander.cordova.torrunner.domain.sni.SniRepository
 import pan.alexander.cordova.torrunner.utils.file.FileManager
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
@@ -42,13 +43,15 @@ import javax.inject.Singleton
 class BridgesDefaultRepositoryImpl @Inject constructor(
     private val configuration: ConfigurationRepository,
     private val snowflakeRepository: SnowflakeRepository,
+    private val sniRepository: SniRepository,
     private val fileManager: FileManager
 ) : BridgesDefaultRepository {
+
+    private val webTunnelSniRegex by lazy { Regex(" servernames=\\S+") }
 
     private val failedBridgesAccordingTorLog by lazy { mutableListOf<String>() }
 
     private val autoBridgesQueue by lazy {
-        val queue = mutableListOf<List<String>>()
 
         val snowFlakeBridges = listOf(
             snowflakeRepository.getBridgeLines(RendezvousType.AMP_CACHE),
@@ -58,33 +61,31 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         val conjureBridges = getDefaultConjureBridges().map { listOf(it) }
         val meekLiteBridges = getDefaultMeekLiteBridges().map { listOf(it) }
 
-        with(queue) {
-            add(snowFlakeBridges.getOrElse(0) { emptyList() })
-            add(conjureBridges.getOrElse(0) { emptyList() })
-            add(snowFlakeBridges.getOrElse(1) { emptyList() })
-            add(conjureBridges.getOrElse(1) { emptyList() })
-            add(snowFlakeBridges.getOrElse(2) { emptyList() })
-            add(conjureBridges.getOrElse(2) { emptyList() })
-            add(meekLiteBridges.getOrElse(0) { emptyList() })
-        }
-
-        queue
+        interleave(snowFlakeBridges, conjureBridges, meekLiteBridges)
     }
 
     private val checkBridgesQueue by lazy {
-        val queue = mutableListOf<List<String>>()
 
-        val obfs3Bridges = getDefaultObfs3Bridges()
-        val obfs4Bridges = getDefaultObfs4Bridges().shuffled().take(3)
-        val webTunnelBridges = getDefaultWebTunnelBridges()
+        val obfs3Bridges = getDefaultObfs3Bridges().shuffled().chunked(2)
+        val obfs4Bridges = getDefaultObfs4Bridges().shuffled().chunked(2)
+        val webTunnelBridges = getDefaultWebTunnelBridges().shuffled().chunked(2)
 
-        with(queue) {
-            add(webTunnelBridges)
-            add(obfs3Bridges)
-            add(obfs4Bridges)
+        interleave(webTunnelBridges, obfs3Bridges, obfs4Bridges)
+    }
+
+    fun <T> interleave(vararg lists: List<T>): List<T> {
+        val result = mutableListOf<T>()
+        val maxSize = lists.maxOf { it.size }
+
+        for (i in 0 until maxSize) {
+            for (list in lists) {
+                if (i < list.size) {
+                    result.add(list[i])
+                }
+            }
         }
 
-        queue
+        return result
     }
 
     override fun getNextBridgesFromAutoQueue(): List<String> {
@@ -107,21 +108,36 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
     override fun getNextBridgesFromCheckingQueue(currentBridges: List<String>): List<String> {
         val checkedBridges = currentBridges.ifEmpty {
             getLastCheckedBridges()
+        }.map {
+            if (it.isWebTunnelBridge()) {
+                it.replace(webTunnelSniRegex, "")
+            } else {
+                it
+            }
         }
         val queue = checkBridgesQueue
+        var nextBridges = queue[0]
         for (index in queue.indices) {
             val bridges = queue[index]
             if (checkedBridges.size == bridges.size && checkedBridges.containsAll(bridges)) {
-                return if (index < queue.size - 1) {
-                    queue[index + 1]
-                } else {
-                    queue[0]
+                if (index < queue.size - 1) {
+                    nextBridges = queue[index + 1]
+                }
+                break
+            }
+        }
+        if (nextBridges.first().isWebTunnelBridge()) {
+            val fakeSni = sniRepository.getFakeSniHosts()
+            if (fakeSni.isNotEmpty()) {
+                return nextBridges.map {
+                    "$it servernames=${fakeSni.joinToString(",")}"
                 }
             }
         }
-        logw("BridgesDefaultRepository unable to check next bridge")
-        return queue[0]
+        return nextBridges
     }
+
+    private fun String.isWebTunnelBridge() = startsWith("webtunnel")
 
     private fun getLastCheckedBridges(): List<String> = try {
         fileManager.readFile(configuration.getTorCheckerConfPath()).filter {

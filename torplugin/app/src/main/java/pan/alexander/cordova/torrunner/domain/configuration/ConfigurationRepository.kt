@@ -53,7 +53,7 @@ interface ConfigurationRepository {
         originalTorConf: List<Pair<String, String>>,
         newTorConf: List<Pair<String, String>>
     )
-    fun createTorCheckerConfiguration(bridges: List<String>)
+    fun createAndSaveTorCheckerConfiguration(bridges: List<String>): List<String>
     fun getCurrentBridgeType(): BridgeType
     fun getCurrentBridges(): List<String>
     fun setBridges(bridges: List<String>)

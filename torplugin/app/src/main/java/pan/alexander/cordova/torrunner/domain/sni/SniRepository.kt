@@ -17,11 +17,8 @@
     Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
  */
 
-package pan.alexander.cordova.torrunner.domain.preferences
+package pan.alexander.cordova.torrunner.domain.sni
 
-object PreferenceKeys {
-    const val TOR_MODE = "TOR_MODE"
-    const val LAST_NETWORK = "LAST_NETWORK"
-    const val LOCALES = "LOCALES"
-    const val LAST_SNI = "LAST_SNI"
+interface SniRepository {
+    fun getFakeSniHosts(): List<String>
 }

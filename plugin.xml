@@ -271,6 +271,9 @@
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/preferences/PreferenceKeys.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/preferences" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/sni/SniRepository.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/sni" />
 
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/addresschecker/AddressCheckerRepositoryImpl.kt"
@@ -293,6 +296,9 @@
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/preferences/PreferenceRepositoryImpl.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/data/preferences" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/sni/SniRepositoryImpl.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/data/sni" />
 
         <framework src="com.google.dagger:dagger:$ANDROID_DAGGER_VERSION" />
         <framework src="org.jetbrains.kotlinx:kotlinx-coroutines-android:$KOTLINX_COROUTINES_VERSION" />

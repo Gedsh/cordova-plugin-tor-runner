@@ -438,7 +438,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
         "ClientTransportPlugin" to "${bridgeType.name.lowercase()} exec $it"
     }
 
-    override fun createTorCheckerConfiguration(bridges: List<String>) {
+    override fun createAndSaveTorCheckerConfiguration(bridges: List<String>): List<String> {
         val conf = mutableListOf<String>().apply {
             add("RunAsDaemon 0")
             add("AvoidDiskWrites 1")
@@ -474,5 +474,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
         }
 
         fileManager.rewriteFile(configurationManager.torCheckerConfPath, conf)
+
+        return conf
     }
 }

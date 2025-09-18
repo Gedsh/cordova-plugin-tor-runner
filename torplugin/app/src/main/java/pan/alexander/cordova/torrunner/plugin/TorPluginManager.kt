@@ -30,6 +30,7 @@ import pan.alexander.cordova.torrunner.domain.core.CoreState
 import pan.alexander.cordova.torrunner.domain.core.CoreStatus
 import pan.alexander.cordova.torrunner.domain.core.TorMode
 import pan.alexander.cordova.torrunner.domain.installer.Installer
+import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 import pan.alexander.cordova.torrunner.framework.ActionSender
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_START_TOR
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_TOR
@@ -47,7 +48,8 @@ class TorPluginManager @Inject constructor(
     private val installer: Installer,
     private val configuration: ConfigurationRepository,
     private val coreStatus: CoreStatus,
-    private val addressChecker: AddressCheckerRepository
+    private val addressChecker: AddressCheckerRepository,
+    private val preferences: PreferenceRepository
 ) {
 
     private val startTorLock by lazy { ReentrantLock() }
@@ -111,6 +113,7 @@ class TorPluginManager @Inject constructor(
             installTorIfRequired()
             val configuration = configuration.getTorConfigurationForCordova()
             updatePluginConfiguration(callbackContext, configuration)
+            updateLocales(cordova?.activity?.resources?.configuration?.locales?.toLanguageTags() ?: "")
         }
     }?.let {
         loge("TorManager getConfiguration", it, true)
@@ -243,5 +246,9 @@ class TorPluginManager @Inject constructor(
             }
         }
         return exception
+    }
+
+    private fun updateLocales(locales: String) {
+        preferences.setLocales(locales.split(","))
     }
 }

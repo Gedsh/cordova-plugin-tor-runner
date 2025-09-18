@@ -28,6 +28,7 @@ import pan.alexander.cordova.torrunner.data.configuration.SnowflakeRepositoryImp
 import pan.alexander.cordova.torrunner.data.network.NetworkRepositoryImpl
 import pan.alexander.cordova.torrunner.data.network.TorConnectionCheckerRepositoryImpl
 import pan.alexander.cordova.torrunner.data.preferences.PreferenceRepositoryImpl
+import pan.alexander.cordova.torrunner.data.sni.SniRepositoryImpl
 import pan.alexander.cordova.torrunner.domain.addresschecker.AddressCheckerRepository
 import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
@@ -35,6 +36,7 @@ import pan.alexander.cordova.torrunner.domain.configuration.SnowflakeRepository
 import pan.alexander.cordova.torrunner.domain.network.NetworkRepository
 import pan.alexander.cordova.torrunner.domain.network.TorConnectionCheckerRepository
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
+import pan.alexander.cordova.torrunner.domain.sni.SniRepository
 
 @Module
 abstract class RepositoryModule {
@@ -73,4 +75,9 @@ abstract class RepositoryModule {
     abstract fun bindBridgesDefaultRepository(
         repositoryImpl: BridgesDefaultRepositoryImpl
     ): BridgesDefaultRepository
+
+    @Binds
+    abstract fun bindSniRepository(
+        repositoryImpl: SniRepositoryImpl
+    ): SniRepository
 }

@@ -27,6 +27,8 @@ import javax.inject.Inject
 import androidx.core.content.edit
 import pan.alexander.cordova.torrunner.domain.network.NetworkType
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceKeys.LAST_NETWORK
+import pan.alexander.cordova.torrunner.domain.preferences.PreferenceKeys.LAST_SNI
+import pan.alexander.cordova.torrunner.domain.preferences.PreferenceKeys.LOCALES
 
 class PreferenceRepositoryImpl @Inject constructor(
     private val preferences: SharedPreferences
@@ -56,6 +58,24 @@ class PreferenceRepositoryImpl @Inject constructor(
     override fun setLastNetwork(networkType: NetworkType) {
         preferences.edit() {
             putString(LAST_NETWORK, networkType.name)
+        }
+    }
+
+    override fun getLocales(): List<String> =
+        preferences.getString(LOCALES, "")?.split(",") ?: emptyList()
+
+    override fun setLocales(locales: List<String>) {
+        preferences.edit {
+            putString(LOCALES, locales.joinToString(","))
+        }
+    }
+
+    override fun getLastSni(): List<String> =
+        preferences.getString(LAST_SNI, "")?.split(",") ?: emptyList()
+
+    override fun setLastSni(sni: List<String>) {
+        preferences.edit {
+            putString(LAST_SNI, sni.joinToString(","))
         }
     }
 

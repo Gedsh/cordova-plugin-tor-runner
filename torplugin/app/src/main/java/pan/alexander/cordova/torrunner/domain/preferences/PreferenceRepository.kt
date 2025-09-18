@@ -28,4 +28,10 @@ interface PreferenceRepository {
 
     fun getLastNetwork(): NetworkType
     fun setLastNetwork(networkType: NetworkType)
+
+    fun getLocales(): List<String>
+    fun setLocales(locales: List<String>)
+
+    fun getLastSni(): List<String>
+    fun setLastSni(sni: List<String>)
 }

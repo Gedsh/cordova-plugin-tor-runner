@@ -18,6 +18,7 @@ import javax.inject.Inject
 private const val REACHABLE_ADDRESS_CHECK_INTERVAL_MINUTES = 3 * 60 * 1000
 private const val UNREACHABLE_ADDRESS_CHECK_INTERVAL_MINUTES = 2 * 60 * 1000
 private const val TIME_TO_STOP_TOR_MINUTES = 5 * 60 * 1000
+private const val CHECK_ADDRESS_TIMEOUT_SEC = 1
 
 class AddressCheckerRepositoryImpl @Inject constructor(
     private val addressChecker: AddressChecker,
@@ -84,5 +85,20 @@ class AddressCheckerRepositoryImpl @Inject constructor(
         }
 
         return reachable
+    }
+
+    override fun getReachableDomains(domains: List<String>): List<String> {
+        val result = mutableListOf<String>()
+        for (domain in domains) {
+            val reachable = addressChecker.isHttpsAddressReachable(
+                domain,
+                443,
+                CHECK_ADDRESS_TIMEOUT_SEC * 1000
+            )
+            if (reachable) {
+                result.add(domain)
+            }
+        }
+        return result
     }
 }
