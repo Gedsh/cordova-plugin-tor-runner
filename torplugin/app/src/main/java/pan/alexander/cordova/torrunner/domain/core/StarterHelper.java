@@ -274,7 +274,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             } else if (line.contains("ClientTransportPlugin ") && line.contains("/libsnowflake.so")) {
                 newLine = line.replaceAll("/.+?/libsnowflake.so", configuration.getSnowflakePath());
             } else if (line.contains("ClientTransportPlugin ") && line.contains("/libwebtunnel.so")) {
-                newLine = line.replaceAll("/.+?/libwebtunnel.so", configuration.getWebTunnelPath());
+                newLine = line.replaceAll("/.+?/libwebtunnel.so", configuration.getObfsPath());
             } else if (line.contains("ClientTransportPlugin ") && line.contains("/libconjure.so")) {
                 newLine = line.replaceAll("/.+?/libconjure.so", configuration.getConjurePath());
             }

@@ -33,4 +33,5 @@ public interface Constants {
     String CLOUDFLARE_WEBSITE  = "www.cloudflare.com";
     String QUAD9_WEBSITE = "quad9.net";
 
+    String HOST_NAME_REGEX = "[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,7}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)";
 }

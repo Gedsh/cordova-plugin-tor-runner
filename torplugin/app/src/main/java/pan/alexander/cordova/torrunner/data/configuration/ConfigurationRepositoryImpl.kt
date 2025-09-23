@@ -429,8 +429,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
         }
 
     private fun getClientTransportPlugin(bridgeType: BridgeType) = when(bridgeType) {
-        BridgeType.OBFS3, BridgeType.OBFS4, BridgeType.MEEK_LITE -> configurationManager.obfsPath
-        BridgeType.WEBTUNNEL -> configurationManager.webTunnelPath
+        BridgeType.OBFS3, BridgeType.OBFS4, BridgeType.MEEK_LITE, BridgeType.WEBTUNNEL -> configurationManager.obfsPath
         BridgeType.SNOWFLAKE -> configurationManager.snowflakePath
         BridgeType.CONJURE -> configurationManager.conjurePath
         else -> null

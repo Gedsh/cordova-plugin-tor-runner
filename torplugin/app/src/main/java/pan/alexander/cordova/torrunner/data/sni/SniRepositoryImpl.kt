@@ -23,10 +23,12 @@ import pan.alexander.cordova.torrunner.domain.addresschecker.AddressCheckerRepos
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 import pan.alexander.cordova.torrunner.domain.sni.SniRepository
+import pan.alexander.cordova.torrunner.utils.Constants.HOST_NAME_REGEX
 import java.io.File
 import javax.inject.Inject
 
-private const val SNI_COUNT = 3
+private const val SNI_COUNT_TO_CHECK = 5
+private const val SNI_COUNT_TO_GET = 3
 private const val LOCALE_RU_RU: String = "ru-RU"
 private const val LOCALE_RU_BY: String = "ru-BY"
 private const val COUNTRY_CODE_RU: String = "ru"
@@ -37,23 +39,33 @@ class SniRepositoryImpl @Inject constructor(
     private val preferences: PreferenceRepository
 ): SniRepository {
 
+    val hostNameRegex by lazy { Regex(HOST_NAME_REGEX) }
+
     override fun getFakeSniHosts(): List<String> {
         return getDefaultSni("")
             .shuffled()
-            .take(SNI_COUNT)
+            .take(SNI_COUNT_TO_CHECK)
             .let {
                 addressCheckerRepository.getReachableDomains(it)
+                    .take(SNI_COUNT_TO_GET)
             }.ifEmpty {
                 val locales = preferences.getLocales()
                 if (locales.contains(LOCALE_RU_RU) || locales.contains(LOCALE_RU_BY)) {
                     getDefaultSni(COUNTRY_CODE_RU)
                         .shuffled()
-                        .take(SNI_COUNT)
+                        .take(SNI_COUNT_TO_CHECK)
                         .let {
                             addressCheckerRepository.getReachableDomains(it)
+                                .take(SNI_COUNT_TO_GET)
+                        }.ifEmpty {
+                            getDefaultSni(COUNTRY_CODE_RU)
+                                .shuffled()
+                                .take(SNI_COUNT_TO_GET)
                         }
                 } else {
-                    emptyList()
+                    getDefaultSni("")
+                        .shuffled()
+                        .take(SNI_COUNT_TO_GET)
                 }
             }
     }
@@ -65,7 +77,10 @@ class SniRepositoryImpl @Inject constructor(
             } else {
                 it.startsWith("sni$countryCode")
             }
-        }?.substringAfter(" ")?.split(", ") ?: emptyList()
+        }?.substringAfter(" ")
+            ?.split(Regex(", ?"))
+            ?.filter { it.matches(hostNameRegex) }
+            ?: emptyList()
 
     private fun getDefaultBridges(): List<String> =
         File(configuration.getTorDefaultBridgesPath()).readLines()

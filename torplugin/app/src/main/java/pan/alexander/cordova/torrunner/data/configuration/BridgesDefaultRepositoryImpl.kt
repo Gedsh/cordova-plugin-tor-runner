@@ -47,7 +47,7 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
     private val fileManager: FileManager
 ) : BridgesDefaultRepository {
 
-    private val webTunnelSniRegex by lazy { Regex(" servernames=\\S+") }
+    private val webTunnelSniRegex by lazy { Regex(" servername(s)?=\\S+") }
 
     private val failedBridgesAccordingTorLog by lazy { mutableListOf<String>() }
 
@@ -130,7 +130,7 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
             val fakeSni = sniRepository.getFakeSniHosts()
             if (fakeSni.isNotEmpty()) {
                 return nextBridges.map {
-                    "$it servernames=${fakeSni.joinToString(",")}"
+                    "$it servername=${fakeSni.joinToString(",")}"
                 }
             }
         }
