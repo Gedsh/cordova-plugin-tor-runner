@@ -76,6 +76,7 @@ class AddressChecker @Inject constructor() {
                 sslSocket.enabledProtocols = sslSocket.supportedProtocols.filter {
                     it.startsWith("TLS")
                 }.toTypedArray()
+                sslSocket.soTimeout = timeoutMs
                 sslSocket.startHandshake()
 
                 if (!validateCertificateDomain(sslSocket, domain)) {
@@ -106,8 +107,8 @@ class AddressChecker @Inject constructor() {
                     return false
                 }
             }
-        } catch (_: SocketTimeoutException) {
-            logw("Address ${domain}:${port} timeout")
+        } catch (e: SocketTimeoutException) {
+            logw("Address ${domain}:${port}", e)
             false
         } catch (e: Exception) {
             if (e.message != null) {
