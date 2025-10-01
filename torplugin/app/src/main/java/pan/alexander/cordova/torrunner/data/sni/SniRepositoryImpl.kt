@@ -79,6 +79,7 @@ class SniRepositoryImpl @Inject constructor(
             }
         }?.substringAfter(" ")
             ?.split(Regex(", ?"))
+            ?.map { it.trim() }
             ?.filter { it.matches(hostNameRegex) }
             ?: emptyList()
 
