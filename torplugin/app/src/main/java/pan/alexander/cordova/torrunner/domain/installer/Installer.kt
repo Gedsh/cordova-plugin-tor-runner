@@ -41,8 +41,7 @@ class Installer @Inject constructor(
     private val zipManager: dagger.Lazy<ZipFileManager>
 ) {
 
-    @Volatile
-    var installing = AtomicBoolean(false)
+    val installing = AtomicBoolean(false)
 
     @WorkerThread
     fun installTorIfRequired(): Boolean {
@@ -65,9 +64,10 @@ class Installer @Inject constructor(
     fun reinstallTor(): Boolean {
         if (installing.compareAndSet(false, true)) {
             try {
-                if (!configurationRepository.isTorConfigurationAvailable()) {
-                    return installTorConfiguration()
-                }
+                val configuration = configurationRepository.getTorConfigurationForCordova()
+                val result = installTorConfiguration()
+                configurationRepository.saveTorConfigurationFromCordova(configuration)
+                return result
             } catch (e: Exception) {
                 loge("Installer reinstallTor", e)
                 return false

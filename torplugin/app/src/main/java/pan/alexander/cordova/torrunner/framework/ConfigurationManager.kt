@@ -27,7 +27,7 @@ import javax.inject.Singleton
 
 @Singleton
 class ConfigurationManager @Inject constructor(
-    context: Context
+    private val context: Context
 ) {
     val appDataDir: String by lazy {
         context.applicationInfo.dataDir ?: context.filesDir.path
@@ -54,7 +54,7 @@ class ConfigurationManager @Inject constructor(
     val torCheckerPidPath by lazy { "$appDataDir/tor_checker.pid" }
     val torCheckerDataDir by lazy { "$appDataDir/tor_checker_data" }
 
-    val torAssetsStream by lazy { context.assets.open("tor.mp3") }
+    fun torAssetsStream() = context.assets.open("tor.mp3")
 
     val torDefaultBridgesPath by lazy { "$appDataDir/app_data/tor/bridges_default.lst" }
 
