@@ -37,38 +37,58 @@ class SniRepositoryImpl @Inject constructor(
     private val configuration: ConfigurationRepository,
     private val addressCheckerRepository: AddressCheckerRepository,
     private val preferences: PreferenceRepository
-): SniRepository {
+) : SniRepository {
 
-    val hostNameRegex by lazy { Regex(HOST_NAME_REGEX) }
+    private val hostNameRegex by lazy { Regex(HOST_NAME_REGEX) }
+
+    private var whiteListSuspected = false
 
     override fun getFakeSniHosts(): List<String> {
-        return getDefaultSni("")
+
+        val fakeSni = mutableListOf<String>()
+
+        val locales = preferences.getLocales()
+
+        val universalSni = getDefaultSni("")
+        val reachableUniversalSni = universalSni
             .shuffled()
             .take(SNI_COUNT_TO_CHECK)
             .let {
                 addressCheckerRepository.getReachableDomains(it)
                     .take(SNI_COUNT_TO_GET)
-            }.ifEmpty {
-                val locales = preferences.getLocales()
-                if (locales.contains(LOCALE_RU_RU) || locales.contains(LOCALE_RU_BY)) {
-                    getDefaultSni(COUNTRY_CODE_RU)
-                        .shuffled()
-                        .take(SNI_COUNT_TO_CHECK)
-                        .let {
-                            addressCheckerRepository.getReachableDomains(it)
-                                .take(SNI_COUNT_TO_GET)
-                        }.ifEmpty {
-                            getDefaultSni(COUNTRY_CODE_RU)
-                                .shuffled()
-                                .take(SNI_COUNT_TO_GET)
-                        }
-                } else {
-                    getDefaultSni("")
-                        .shuffled()
-                        .take(SNI_COUNT_TO_GET)
+            }
+
+        if (reachableUniversalSni.isNotEmpty()) {
+            whiteListSuspected = false
+            fakeSni.addAll(reachableUniversalSni)
+        } else if (locales.contains(LOCALE_RU_RU) || locales.contains(LOCALE_RU_BY)) {
+            whiteListSuspected = true
+            val ruSni = getDefaultSni(COUNTRY_CODE_RU)
+                .shuffled()
+                .toMutableList()
+            while (ruSni.isNotEmpty()) {
+                val sniToCheck = ruSni.take(SNI_COUNT_TO_CHECK).also {
+                    ruSni.removeAll(it)
+                }
+                val reachableRuSni = addressCheckerRepository.getReachableDomains(sniToCheck)
+                    .take(SNI_COUNT_TO_GET)
+                if (reachableRuSni.isNotEmpty()) {
+                    fakeSni.addAll(reachableRuSni)
+                    break
                 }
             }
+            if (fakeSni.isEmpty()) {
+                fakeSni.addAll(getDefaultSni(COUNTRY_CODE_RU).shuffled().take(SNI_COUNT_TO_GET))
+            }
+        } else {
+            whiteListSuspected = false
+            fakeSni.addAll(universalSni.shuffled().take(SNI_COUNT_TO_GET))
+        }
+
+        return fakeSni
     }
+
+    override fun isWhiteListSuspected(): Boolean = whiteListSuspected
 
     private fun getDefaultSni(countryCode: String): List<String> =
         getDefaultBridges().firstOrNull {

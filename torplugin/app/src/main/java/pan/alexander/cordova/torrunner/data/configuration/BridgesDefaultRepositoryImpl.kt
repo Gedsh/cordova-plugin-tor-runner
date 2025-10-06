@@ -69,8 +69,11 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         val obfs3Bridges = getDefaultObfs3Bridges().shuffled().chunked(2)
         val obfs4Bridges = getDefaultObfs4Bridges().shuffled().chunked(2)
         val webTunnelBridges = getDefaultWebTunnelBridges().shuffled().chunked(2)
+        val vanillaBridges = getDefaultVanillaBridges().shuffled()
+            .map { it.removePrefix("vanilla ") }
+            .chunked(2)
 
-        interleave(webTunnelBridges, obfs3Bridges, obfs4Bridges)
+        interleave(webTunnelBridges, vanillaBridges, obfs3Bridges, obfs4Bridges)
     }
 
     fun <T> interleave(vararg lists: List<T>): List<T> {
@@ -120,8 +123,19 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         for (index in queue.indices) {
             val bridges = queue[index]
             if (checkedBridges.size == bridges.size && checkedBridges.containsAll(bridges)) {
-                if (index < queue.size - 1) {
-                    nextBridges = queue[index + 1]
+                var offset = 1
+                while (index + offset < queue.size) {
+                    nextBridges = queue[index + offset]
+                    if (sniRepository.isWhiteListSuspected()
+                        && nextBridges.firstOrNull()?.isWebTunnelBridge() != true
+                        && nextBridges.firstOrNull()?.isVanillaBridge() != true) {
+                        offset++
+                    } else {
+                        break
+                    }
+                    if (index + offset == queue.size) {
+                        nextBridges = queue[0]
+                    }
                 }
                 break
             }
@@ -138,6 +152,8 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
     }
 
     private fun String.isWebTunnelBridge() = startsWith("webtunnel")
+
+    private fun String.isVanillaBridge() = matches(Regex("^(\\d|\\[).+"))
 
     private fun getLastCheckedBridges(): List<String> = try {
         fileManager.readFile(configuration.getTorCheckerConfPath()).filter {
@@ -190,8 +206,8 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         it.startsWith("webtunnel")
     }
 
-    override fun getDefaultVanillaBridges(): List<String> {
-        TODO("Not yet implemented")
+    override fun getDefaultVanillaBridges(): List<String>  = getDefaultBridges().filter {
+        it.startsWith("vanilla")
     }
 
     override fun updateDefaultBridges() = try {

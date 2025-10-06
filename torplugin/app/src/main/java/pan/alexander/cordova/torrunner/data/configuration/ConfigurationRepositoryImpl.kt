@@ -97,7 +97,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
 
     override fun getTorDefaultSocksPort() = configurationManager.torDefaultSocksPort
 
-    override fun getTorAssetStream() = configurationManager.torAssetsStream
+    override fun getTorAssetStream() = configurationManager.torAssetsStream()
 
     override fun getTorDefaultBridgesPath() = configurationManager.torDefaultBridgesPath
 
@@ -460,7 +460,12 @@ class ConfigurationRepositoryImpl @Inject constructor(
         } else {
             getBridgeTypeFromLine(bridges.first())
         }
-        if (bridgeType != BridgeType.NONE) {
+        if (bridgeType == BridgeType.VANILLA) {
+            conf.add("UseBridges 1")
+            for (bridge in bridges) {
+                conf.add("Bridge $bridge")
+            }
+        } else if (bridgeType != BridgeType.NONE) {
             getClientTransportPlugin(bridgeType)?.run { "$first $second" }?.let {
                 conf.add("UseBridges 1")
                 conf.add(it)

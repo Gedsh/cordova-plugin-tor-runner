@@ -21,4 +21,5 @@ package pan.alexander.cordova.torrunner.domain.sni
 
 interface SniRepository {
     fun getFakeSniHosts(): List<String>
+    fun isWhiteListSuspected(): Boolean
 }
