@@ -139,7 +139,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
                 fakeHosts = preferences.getLastSni();
             }
             if (!fakeHosts.isEmpty()) {
-                torCmdString += " -fake-hosts " + TextUtils.join(",", fakeHosts);
+                torCmdString += " --fake-hosts " + TextUtils.join(",", fakeHosts);
             }
 
             logi("Tor is listening on port " + configuration.getTorSocksPort());
@@ -206,7 +206,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             }
             preferences.setLastSni(fakeHosts);
             if (!fakeHosts.isEmpty()) {
-                torCmdString += " -fake-hosts " + TextUtils.join(",", fakeHosts);
+                torCmdString += " --fake-hosts " + TextUtils.join(",", fakeHosts);
             }
 
             ProcessStarter starter = new ProcessStarter(configuration.getNativeLibPath());
