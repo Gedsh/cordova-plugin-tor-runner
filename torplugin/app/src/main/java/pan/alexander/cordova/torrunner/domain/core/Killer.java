@@ -169,24 +169,29 @@ public class Killer {
 
             torCheckerLock.lock();
 
+            boolean result = false;
+
             try {
-                String torPid = readPidFile(configuration.getTorCheckerPidPath());
-                if (torPid.isBlank()) {
-                    return;
-                }
+                while (!result) {
+                    String torPid = readPidFile(configuration.getTorCheckerPidPath());
+                    if (torPid.isBlank()) {
+                        result = stopModuleWithInterruptThread(torCheckerThread);
+                    } else {
+                        result = doThreeAttemptsToStopModule(
+                                configuration.getTorPath(),
+                                torPid,
+                                torCheckerThread
+                        );
+                    }
 
-                boolean result = doThreeAttemptsToStopModule(
-                        configuration.getTorPath(),
-                        torPid,
-                        torCheckerThread
-                );
-
-                if (!result && torCheckerThread != null && torCheckerThread.isAlive()) {
-                    logw("Killer cannot stop Tor checker. Stop with interrupt thread!");
-                    makeDelay(5);
-                    stopModuleWithInterruptThread(torCheckerThread);
-                } else if (!result) {
-                    logw("Killer cannot stop Tor checker. Thread is null");
+                    if (!result && torCheckerThread != null && torCheckerThread.isAlive()) {
+                        logw("Killer cannot stop Tor checker. Stop with interrupt thread!");
+                        makeDelay(5);
+                        result = stopModuleWithInterruptThread(torCheckerThread);
+                    } else if (!result) {
+                        logw("Killer cannot stop Tor checker. Thread is null");
+                        break;
+                    }
                 }
 
             } catch (Exception e) {

@@ -1,5 +1,11 @@
 package pan.alexander.cordova.torrunner.data.addresschecker
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import pan.alexander.cordova.torrunner.domain.addresschecker.AddressCheckerRepository
 import pan.alexander.cordova.torrunner.domain.addresschecker.DomainToPort
 import pan.alexander.cordova.torrunner.domain.addresschecker.TimeToReachable
@@ -19,14 +25,18 @@ private const val REACHABLE_ADDRESS_CHECK_INTERVAL_MINUTES = 3 * 60 * 1000
 private const val UNREACHABLE_ADDRESS_CHECK_INTERVAL_MINUTES = 2 * 60 * 1000
 private const val TIME_TO_STOP_TOR_MINUTES = 5 * 60 * 1000
 private const val CHECK_ADDRESS_TIMEOUT_SEC = 1
+private const val MAX_SIMULTANEOUS_REACHABILITY_TESTS = 10
 
 class AddressCheckerRepositoryImpl @Inject constructor(
     private val addressChecker: AddressChecker,
     private val preferences: PreferenceRepository,
     private val networkChecker: NetworkChecker,
     private val coreStatus: CoreStatus,
-    private val actionSender: ActionSender
+    private val actionSender: ActionSender,
+    dispatcherIo: CoroutineDispatcher
 ) : AddressCheckerRepository {
+
+    private val limitedParallelismDispatcher = dispatcherIo.limitedParallelism(MAX_SIMULTANEOUS_REACHABILITY_TESTS)
 
     private val checkResults = ConcurrentHashMap<DomainToPort, TimeToReachable>()
 
@@ -87,18 +97,30 @@ class AddressCheckerRepositoryImpl @Inject constructor(
         return reachable
     }
 
-    override fun getReachableDomains(domains: List<String>): List<String> {
+    override suspend fun getReachableDomains(domains: List<String>): List<String> = try {
         val result = mutableListOf<String>()
-        for (domain in domains) {
-            val reachable = addressChecker.isHttpsAddressReachable(
-                domain,
-                443,
-                CHECK_ADDRESS_TIMEOUT_SEC * 1000
-            )
-            if (reachable) {
-                result.add(domain)
+        coroutineScope {
+            val defers = mutableListOf<Deferred<Unit>>()
+            for (domain in domains) {
+                defers += async(limitedParallelismDispatcher) {
+                    val reachable = addressChecker.isHttpsAddressReachable(
+                        domain,
+                        443,
+                        CHECK_ADDRESS_TIMEOUT_SEC * 1000
+                    )
+                    if (reachable) {
+                        result.add(domain)
+                    }
+                }
+
+                delay(CHECK_ADDRESS_TIMEOUT_SEC * 1000L)
             }
+
+            defers.awaitAll()
         }
-        return result
+
+        result
+    } catch (_: Exception) {
+        emptyList()
     }
 }

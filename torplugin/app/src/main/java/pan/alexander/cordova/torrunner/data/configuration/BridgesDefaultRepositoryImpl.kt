@@ -21,10 +21,12 @@ package pan.alexander.cordova.torrunner.data.configuration
 
 import android.os.Build
 import dalvik.system.ZipPathValidator
+import kotlinx.coroutines.isActive
 import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.configuration.RendezvousType
 import pan.alexander.cordova.torrunner.domain.configuration.SnowflakeRepository
+import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 import pan.alexander.cordova.torrunner.domain.sni.SniRepository
 import pan.alexander.cordova.torrunner.utils.file.FileManager
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
@@ -38,13 +40,15 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.coroutineContext
 
 @Singleton
 class BridgesDefaultRepositoryImpl @Inject constructor(
     private val configuration: ConfigurationRepository,
     private val snowflakeRepository: SnowflakeRepository,
     private val sniRepository: SniRepository,
-    private val fileManager: FileManager
+    private val fileManager: FileManager,
+    private val preferences: PreferenceRepository
 ) : BridgesDefaultRepository {
 
     private val webTunnelSniRegex by lazy { Regex(" servername(s)?=\\S+") }
@@ -91,7 +95,7 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         return result
     }
 
-    override fun getNextBridgesFromAutoQueue(): List<String> {
+    override suspend fun getNextBridgesFromAutoQueue(): List<String> {
         val currentBridges = configuration.getCurrentBridges()
         val queue = autoBridgesQueue
         for (index in queue.indices) {
@@ -108,7 +112,7 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         return queue[0]
     }
 
-    override fun getNextBridgesFromCheckingQueue(currentBridges: List<String>): List<String> {
+    override suspend fun getNextBridgesFromCheckingQueue(currentBridges: List<String>): List<String> {
         val checkedBridges = currentBridges.ifEmpty {
             getLastCheckedBridges()
         }.map {
@@ -124,9 +128,10 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
             val bridges = queue[index]
             if (checkedBridges.size == bridges.size && checkedBridges.containsAll(bridges)) {
                 var offset = 1
-                while (index + offset < queue.size) {
+                while (index + offset < queue.size && coroutineContext.isActive) {
                     nextBridges = queue[index + offset]
-                    if (sniRepository.isWhiteListSuspected()
+                    if (coroutineContext.isActive
+                        && sniRepository.isWhiteListSuspected()
                         && nextBridges.firstOrNull()?.isWebTunnelBridge() != true
                         && nextBridges.firstOrNull()?.isVanillaBridge() != true) {
                         offset++
@@ -140,8 +145,9 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
                 break
             }
         }
-        if (nextBridges.first().isWebTunnelBridge()) {
+        if (nextBridges.first().isWebTunnelBridge() && coroutineContext.isActive) {
             val fakeSni = sniRepository.getFakeSniHosts()
+            preferences.setLastSni(fakeSni)
             if (fakeSni.isNotEmpty()) {
                 return nextBridges.map {
                     "$it servername=${fakeSni.joinToString(",")}"

@@ -102,13 +102,13 @@ class TorRestarterReconnector @Inject constructor(
             if (!isRotateBridgesCounterRunning() && configuration.getCurrentBridgeType() != BridgeType.NONE) {
                 startRotatingBridges()
             }
-            if (!isCheckBridgesCounterRunning()
-                && (configuration.getCurrentBridgeType() == BridgeType.SNOWFLAKE
-                        || configuration.getCurrentBridgeType() == BridgeType.CONJURE
-                        || configuration.getCurrentBridgeType() == BridgeType.MEEK_LITE)
-                && !checkBridgesScope.coroutineContext.job.children.any()
-            ) {
-                startCheckingBridges()
+            if (!isCheckBridgesCounterRunning() && !checkBridgesScope.coroutineContext.job.children.any()) {
+                val bridgeType = configuration.getCurrentBridgeType()
+                if (bridgeType == BridgeType.SNOWFLAKE
+                    || bridgeType == BridgeType.CONJURE
+                    || bridgeType == BridgeType.MEEK_LITE) {
+                    startCheckingBridges()
+                }
             }
         } catch (_: CancellationException) {
             resetCounters()
@@ -276,7 +276,7 @@ class TorRestarterReconnector @Inject constructor(
         }
     }
 
-    private fun setNextBridge() {
+    private suspend fun setNextBridge() {
         val bridges = bridgesDefaultRepository.getNextBridgesFromAutoQueue()
         configuration.setBridges(bridges)
 
@@ -298,102 +298,109 @@ class TorRestarterReconnector @Inject constructor(
 
     private fun startCheckingBridges() = checkBridgesScope.launch {
         logi("Start checking bridges")
-        val currentBridgesToCheck = mutableListOf<String>()
-        checkBridgesCounter++
-        while (coroutineContext.isActive) {
+        try {
+            val currentBridgesToCheck = mutableListOf<String>()
+            checkBridgesCounter++
+            while (coroutineContext.isActive) {
 
-            bridgesDefaultRepository.clearCheckFailedBridges()
+                bridgesDefaultRepository.clearCheckFailedBridges()
 
-            if (!isNetworkAvailable()) {
-                stopRestarterCounters()
-                stopTorChecker()
-                break
-            }
-
-            if (coreStatus.torState == CoreState.RUNNING && isNetworkAvailable()) {
-                checkBridgesCounter++
-                if (configuration.getCurrentBridgeType() != BridgeType.NONE) {
-                    val bridges = currentBridgesToCheck.toList()
-                    currentBridgesToCheck.clear()
-                    currentBridgesToCheck.addAll(checkNextBridges(bridges))
-                    for (bridge in currentBridgesToCheck) {
-                        if (bridge.count { it == " "[0] } > 1) {
-                            logi(
-                                "Check next bridge: ${
-                                    bridge.substring(
-                                        0,
-                                        bridge.indexOf(" ", bridge.indexOf(" ") + 1)
-                                    )
-                                }"
-                            )
-                        } else {
-                            logi("Check next bridge: $bridge")
-                        }
-                    }
-                } else {
-                    stopTorChecker()
-                    checkBridgesCounter = 0
+                if (!isNetworkAvailable()) {
+                    stopRestarterCounters()
                     break
                 }
-            }
 
-            delay(
-                getDelayForCheckingBridges() / 2
-            )
-            if (coreStatus.torCheckerLoadingPercent > 10 && coreStatus.torCheckerLoadingPercent < 100) {
+                if (coreStatus.torState == CoreState.RUNNING && isNetworkAvailable()) {
+                    checkBridgesCounter++
+                    if (configuration.getCurrentBridgeType() != BridgeType.NONE) {
+                        val bridges = currentBridgesToCheck.toList()
+                        currentBridgesToCheck.clear()
+                        currentBridgesToCheck.addAll(checkNextBridges(bridges))
+                        for (bridge in currentBridgesToCheck) {
+                            if (bridge.count { it == " "[0] } > 1) {
+                                logi(
+                                    "Check next bridge: ${
+                                        bridge.substring(
+                                            0,
+                                            bridge.indexOf(" ", bridge.indexOf(" ") + 1)
+                                        )
+                                    }"
+                                )
+                            } else {
+                                logi("Check next bridge: $bridge")
+                            }
+                        }
+                    } else {
+                        break
+                    }
+                }
+
                 delay(
                     getDelayForCheckingBridges() / 2
                 )
-            }
-            if (coreStatus.torCheckerLoadingPercent > 65 && coreStatus.torCheckerLoadingPercent < 100) {
-                delay(
-                    EXTRA_DELAY_CHECK_BRIDGE_MINUTES * 60 * 1000L
-                )
-            }
-            if (coreStatus.torCheckerLoadingPercent > 90 && coreStatus.torCheckerLoadingPercent < 100) {
-                delay(
-                    EXTRA_DELAY_CHECK_BRIDGE_MINUTES * 60 * 1000L
-                )
-            }
-            if (coreStatus.torCheckerLoadingPercent == 100
-                && coreStatus.torState == CoreState.RUNNING
-                && currentBridgesToCheck.isNotEmpty()
-            ) {
-                stopRestarterCounters()
-                stopTorChecker()
-
-                val bridgesToUse = currentBridgesToCheck.toMutableList()
-                val failedBridgesAddresses = bridgesDefaultRepository.getCheckFailedBridges()
-                bridgesToUse.removeIf { bridge ->
-                    failedBridgesAddresses.any { bridge.contains(it) }
+                if (coreStatus.torCheckerLoadingPercent > 10 && coreStatus.torCheckerLoadingPercent < 100) {
+                    delay(
+                        getDelayForCheckingBridges() / 2
+                    )
                 }
-                if (bridgesToUse.isEmpty()) {
-                    bridgesToUse.addAll(currentBridgesToCheck)
+                if (coreStatus.torCheckerLoadingPercent > 65 && coreStatus.torCheckerLoadingPercent < 100) {
+                    delay(
+                        EXTRA_DELAY_CHECK_BRIDGE_MINUTES * 60 * 1000L
+                    )
                 }
+                if (coreStatus.torCheckerLoadingPercent > 90 && coreStatus.torCheckerLoadingPercent < 100) {
+                    delay(
+                        EXTRA_DELAY_CHECK_BRIDGE_MINUTES * 60 * 1000L
+                    )
+                }
+                if (coreStatus.torCheckerLoadingPercent == 100
+                    && coreStatus.torState == CoreState.RUNNING
+                    && currentBridgesToCheck.isNotEmpty()
+                ) {
+                    stopRestarterCounters()
 
-                configuration.setBridges(bridgesToUse)
-                for (bridge in bridgesToUse) {
-                    if (bridge.count { it == " "[0] } > 1) {
-                        logi(
-                            "Use bridge: ${
-                                bridge.substring(
-                                    0,
-                                    bridge.indexOf(" ", bridge.indexOf(" ") + 1)
-                                )
-                            }"
-                        )
-                    } else {
-                        logi("Use bridge: $bridge")
+                    val bridgesToUse = currentBridgesToCheck.toMutableList()
+                    val failedBridgesAddresses = bridgesDefaultRepository.getCheckFailedBridges()
+                    bridgesToUse.removeIf { bridge ->
+                        failedBridgesAddresses.any { bridge.contains(it) }
                     }
-                }
-                checkBridgesCounter = 0
-                break
-            }
+                    if (bridgesToUse.isEmpty()) {
+                        bridgesToUse.addAll(currentBridgesToCheck)
+                    }
 
+                    val bridgeType = configuration.getCurrentBridgeType()
+                    if (bridgeType == BridgeType.SNOWFLAKE
+                        || bridgeType == BridgeType.CONJURE
+                        || bridgeType == BridgeType.MEEK_LITE) {
+                        configuration.setBridges(bridgesToUse)
+                        for (bridge in bridgesToUse) {
+                            if (bridge.count { it == " "[0] } > 1) {
+                                logi(
+                                    "Use bridge: ${
+                                        bridge.substring(
+                                            0,
+                                            bridge.indexOf(" ", bridge.indexOf(" ") + 1)
+                                        )
+                                    }"
+                                )
+                            } else {
+                                logi("Use bridge: $bridge")
+                            }
+                        }
+                    }
+
+                    break
+                }
+            }
+        } catch (_: CancellationException) {
+        } catch (e: Exception) {
+            loge("TorRestarterReconnector startCheckingBridges", e)
+        } finally {
+            stopTorChecker()
         }
     }
 
-    private fun checkNextBridges(bridges: List<String>): List<String> {
+    private suspend fun checkNextBridges(bridges: List<String>): List<String> {
         val bridges = bridgesDefaultRepository.getNextBridgesFromCheckingQueue(bridges)
         torCheckerManager.runTorChecker(bridges)
         coreStatus.torCheckerLoadingPercent = 0
@@ -403,6 +410,7 @@ class TorRestarterReconnector @Inject constructor(
     private fun stopTorChecker() {
         torCheckerManager.stopTorChecker()
         checkBridgesScope.coroutineContext.cancelChildren()
+        checkBridgesCounter = 0
     }
 
     private fun setNextSnowFlakeBridge(): RendezvousType {

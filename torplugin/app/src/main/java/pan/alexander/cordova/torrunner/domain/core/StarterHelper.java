@@ -54,7 +54,6 @@ import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationReposit
 import pan.alexander.cordova.torrunner.domain.installer.Installer;
 import pan.alexander.cordova.torrunner.domain.network.TorConnectionCheckerInteractor;
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository;
-import pan.alexander.cordova.torrunner.domain.sni.SniRepository;
 import pan.alexander.cordova.torrunner.framework.ActionSender;
 import pan.alexander.cordova.torrunner.utils.file.FileManager;
 import pan.alexander.cordova.torrunner.utils.portchecker.PortChecker;
@@ -73,7 +72,6 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
     private final ActionSender actionSender;
     private final TorConnectionCheckerInteractor torConnectionCheckerInteractor;
     private final BridgesDefaultRepository bridgesDefaultRepository;
-    private final SniRepository sniRepository;
     private final PreferenceRepository preferences;
     private volatile long lastExtraConnectionCheck;
     private final Pattern bootstrappedPattern = Pattern.compile("Bootstrapped (\\d+)%");
@@ -91,7 +89,6 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             ActionSender actionSender,
             TorConnectionCheckerInteractor torConnectionCheckerInteractor,
             BridgesDefaultRepository bridgesDefaultRepository,
-            SniRepository sniRepository,
             PreferenceRepository preferences
     ) {
         this.configuration = configuration;
@@ -103,7 +100,6 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
         this.actionSender = actionSender;
         this.torConnectionCheckerInteractor = torConnectionCheckerInteractor;
         this.bridgesDefaultRepository = bridgesDefaultRepository;
-        this.sniRepository = sniRepository;
         this.preferences = preferences;
         this.lastExtraConnectionCheck = System.currentTimeMillis();
     }
@@ -202,9 +198,8 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
 
             List<String> fakeHosts = Collections.emptyList();
             if (isVanillaBridgesUsed(torConf)) {
-                fakeHosts = getFakeSniHosts();
+                fakeHosts = preferences.getLastSni();
             }
-            preferences.setLastSni(fakeHosts);
             if (!fakeHosts.isEmpty()) {
                 torCmdString += " --fake-hosts " + TextUtils.join(",", fakeHosts);
             }
@@ -335,10 +330,6 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
 
     private void saveTorConfiguration(List<String> lines) {
         fileManager.rewriteFile(configuration.getTorConfPath(), lines);
-    }
-
-    private List<String> getFakeSniHosts() {
-        return sniRepository.getFakeSniHosts();
     }
 
     private void updateDefaultBridgesIfRequired() {

@@ -28,8 +28,8 @@ interface BridgesDefaultRepository {
     fun getDefaultConjureBridges(): List<String>
     fun getDefaultWebTunnelBridges(): List<String>
     fun getDefaultVanillaBridges(): List<String>
-    fun getNextBridgesFromAutoQueue(): List<String>
-    fun getNextBridgesFromCheckingQueue(currentBridges: List<String>): List<String>
+    suspend fun getNextBridgesFromAutoQueue(): List<String>
+    suspend fun getNextBridgesFromCheckingQueue(currentBridges: List<String>): List<String>
     fun getCheckFailedBridges(): List<String>
     fun addCheckFailedBridge(bridgeAddress: String)
     fun clearCheckFailedBridges()
