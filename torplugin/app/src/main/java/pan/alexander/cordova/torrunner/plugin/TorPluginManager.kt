@@ -34,6 +34,9 @@ import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 import pan.alexander.cordova.torrunner.framework.ActionSender
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_START_TOR
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_TOR
+import pan.alexander.cordova.torrunner.utils.Constants.HOST_NAME_REGEX
+import pan.alexander.cordova.torrunner.utils.Constants.IPv4_REGEX
+import pan.alexander.cordova.torrunner.utils.Constants.IPv6_REGEX
 import pan.alexander.cordova.torrunner.utils.Constants.MAX_PORT_NUMBER
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
@@ -56,6 +59,9 @@ class TorPluginManager @Inject constructor(
     private val stopTorLock by lazy { ReentrantLock() }
     private val torConfigurationLock by lazy { ReentrantLock() }
 
+    private val hostRegex by lazy { Regex(HOST_NAME_REGEX) }
+    private val ipv4Regex by lazy { Regex(IPv4_REGEX) }
+    private val ipv6Regex by lazy { Regex(IPv6_REGEX) }
     private val portRegex by lazy { Regex("\\d{2,5}") }
 
     private var settingsCallback: CallbackContext? = null
@@ -113,7 +119,9 @@ class TorPluginManager @Inject constructor(
             installTorIfRequired()
             val configuration = configuration.getTorConfigurationForCordova()
             updatePluginConfiguration(callbackContext, configuration)
-            updateLocales(cordova?.activity?.resources?.configuration?.locales?.toLanguageTags() ?: "")
+            updateLocales(
+                cordova?.activity?.resources?.configuration?.locales?.toLanguageTags() ?: ""
+            )
         }
     }?.let {
         loge("TorManager getConfiguration", it, true)
@@ -183,6 +191,10 @@ class TorPluginManager @Inject constructor(
                     ?: 443
                 val domain = it.substringBefore(":")
                 DomainToPort(domain, port)
+            }?.takeIf {
+                it.domain.matches(hostRegex)
+                        || it.domain.matches(ipv4Regex)
+                        || it.domain.matches(ipv6Regex)
             }
         val redirect = domainToPort?.let {
             !addressChecker.isAddressReachable(domainToPort)

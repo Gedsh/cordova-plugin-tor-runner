@@ -15,6 +15,7 @@ import pan.alexander.cordova.torrunner.domain.core.TorMode
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 import pan.alexander.cordova.torrunner.framework.ActionSender
 import pan.alexander.cordova.torrunner.framework.CoreServiceActions.ACTION_STOP_TOR
+import pan.alexander.cordova.torrunner.utils.Constants.LOOPBACK_ADDRESS
 import pan.alexander.cordova.torrunner.utils.addresschecker.AddressChecker
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import pan.alexander.cordova.torrunner.utils.network.NetworkChecker
@@ -44,6 +45,9 @@ class AddressCheckerRepositoryImpl @Inject constructor(
     private var timeLastUnreachableAddress = 0L
 
     override fun isAddressReachable(address: DomainToPort): Boolean {
+        if (address.domain == "localhost" || address.domain == LOOPBACK_ADDRESS) {
+            return true
+        }
         val previousResult = checkResults[address]
         val currentTime = System.currentTimeMillis()
         var reachable: Boolean
