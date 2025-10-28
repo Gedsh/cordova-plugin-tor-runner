@@ -26,9 +26,12 @@ import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 import javax.inject.Inject
 import androidx.core.content.edit
 import pan.alexander.cordova.torrunner.domain.network.NetworkType
+import pan.alexander.cordova.torrunner.domain.preferences.PreferenceKeys.LAST_CUSTOM_BRIDGES
+import pan.alexander.cordova.torrunner.domain.preferences.PreferenceKeys.LAST_DEFAULT_BRIDGES
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceKeys.LAST_NETWORK
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceKeys.LAST_SNI
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceKeys.LOCALES
+import pan.alexander.cordova.torrunner.domain.preferences.PreferenceKeys.NEXT_TIME_FOR_BRIDGES_REQUEST
 
 class PreferenceRepositoryImpl @Inject constructor(
     private val preferences: SharedPreferences
@@ -76,6 +79,34 @@ class PreferenceRepositoryImpl @Inject constructor(
     override fun setLastSni(sni: List<String>) {
         preferences.edit {
             putString(LAST_SNI, sni.joinToString(","))
+        }
+    }
+
+    override fun getNextTimeForBridgesRequest(): Long =
+        preferences.getLong(NEXT_TIME_FOR_BRIDGES_REQUEST, 0)
+
+    override fun setNextTimeForBridgesRequest(time: Long) {
+        preferences.edit {
+            putLong(NEXT_TIME_FOR_BRIDGES_REQUEST, time)
+        }
+    }
+
+
+    override fun getLastDefaultBridges(): Set<String> =
+        preferences.getStringSet(LAST_DEFAULT_BRIDGES, emptySet()) ?: emptySet()
+
+    override fun setLastDefaultBridges(bridges: Set<String>) {
+        preferences.edit {
+            putStringSet(LAST_DEFAULT_BRIDGES, bridges)
+        }
+    }
+
+    override fun getLastCustomBridges(): Set<String> =
+        preferences.getStringSet(LAST_CUSTOM_BRIDGES, emptySet()) ?: emptySet()
+
+    override fun setLastCustomBridges(bridges: Set<String>) {
+        preferences.edit {
+            putStringSet(LAST_CUSTOM_BRIDGES, bridges)
         }
     }
 

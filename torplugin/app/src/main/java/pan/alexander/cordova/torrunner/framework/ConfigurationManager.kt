@@ -44,6 +44,7 @@ class ConfigurationManager @Inject constructor(
     val conjurePath = "$nativeLibPath/libconjure.so"
 
     val torDefaultSocksPort = 9051
+    val torDefaultHttpPort = 8189
 
     val torConfigurationDir by lazy { "$appDataDir/app_data/tor" }
     val torConfPath by lazy { "$torConfigurationDir/tor.conf" }
@@ -57,6 +58,8 @@ class ConfigurationManager @Inject constructor(
     fun torAssetsStream() = context.assets.open("tor.mp3")
 
     val torDefaultBridgesPath by lazy { "$appDataDir/app_data/tor/bridges_default.lst" }
+
+    val torCustomBridgesPath by lazy { "$appDataDir/app_data/tor/bridges_custom.lst" }
 
     val reverseProxyPath = "$nativeLibPath/libreverseproxy.so"
 

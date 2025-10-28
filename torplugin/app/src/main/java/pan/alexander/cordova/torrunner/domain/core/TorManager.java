@@ -33,6 +33,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import dagger.Lazy;
+import pan.alexander.cordova.torrunner.domain.configuration.BridgesCustomRepository;
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository;
 import pan.alexander.cordova.torrunner.domain.network.OnTorConnectionCheckedListener;
 import pan.alexander.cordova.torrunner.domain.network.TorConnectionCheckerInteractor;
@@ -56,6 +57,7 @@ public class TorManager implements OnTorConnectionCheckedListener {
     private final NetworkChecker networkChecker;
 
     private final Lazy<TorConnectionCheckerInteractor> torConnectionCheckerInteractor;
+    private final Lazy<BridgesCustomRepository> bridgesCustomRepository;
 
     @Inject
     public TorManager(
@@ -69,7 +71,8 @@ public class TorManager implements OnTorConnectionCheckedListener {
             ThreadFinder threadFinder,
             TorRestarterReconnector torRestarterReconnector,
             NetworkChecker networkChecker,
-            Lazy<TorConnectionCheckerInteractor> torConnectionCheckerInteractor
+            Lazy<TorConnectionCheckerInteractor> torConnectionCheckerInteractor,
+            Lazy<BridgesCustomRepository> bridgesCustomRepository
     ) {
         this.portChecker = portChecker;
         this.fileManager = fileManager;
@@ -82,6 +85,7 @@ public class TorManager implements OnTorConnectionCheckedListener {
         this.torRestarterReconnector = torRestarterReconnector;
         this.networkChecker = networkChecker;
         this.torConnectionCheckerInteractor = torConnectionCheckerInteractor;
+        this.bridgesCustomRepository = bridgesCustomRepository;
     }
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -295,9 +299,11 @@ public class TorManager implements OnTorConnectionCheckedListener {
             if (available) {
                 torRestarterReconnector.stopRestarterCounters();
                 coreStatus.setTorConnectionAvailable(true);
+                bridgesCustomRepository.get().startRequestingBridgesFromTorProjectDb();
             } else if (isNetworkAvailable()) {
                 torRestarterReconnector.startRestarterCounter();
                 coreStatus.setTorConnectionAvailable(false);
+                bridgesCustomRepository.get().stopRequestingBridgesFromTorProjectDb();
             }
         }
     }

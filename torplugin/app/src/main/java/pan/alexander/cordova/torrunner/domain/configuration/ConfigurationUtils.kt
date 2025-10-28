@@ -17,30 +17,27 @@
     Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
  */
 
-package pan.alexander.cordova.torrunner.domain.preferences
+package pan.alexander.cordova.torrunner.domain.configuration
 
-import pan.alexander.cordova.torrunner.domain.core.TorMode
-import pan.alexander.cordova.torrunner.domain.network.NetworkType
+object ConfigurationUtils {
+    val webTunnelSniRegex by lazy { Regex(" servername(s)?=\\S+") }
 
-interface PreferenceRepository {
-    fun getTorMode(): TorMode
-    fun setTorMode(mode: TorMode)
+    fun String.isWebTunnelBridge() = startsWith("webtunnel")
 
-    fun getLastNetwork(): NetworkType
-    fun setLastNetwork(networkType: NetworkType)
+    fun String.isVanillaBridge() = matches(Regex("^(\\d|\\[).+"))
 
-    fun getLocales(): List<String>
-    fun setLocales(locales: List<String>)
+    fun <T> interleave(vararg lists: List<T>): List<T> {
+        val result = mutableListOf<T>()
+        val maxSize = lists.maxOf { it.size }
 
-    fun getLastSni(): List<String>
-    fun setLastSni(sni: List<String>)
+        for (i in 0 until maxSize) {
+            for (list in lists) {
+                if (i < list.size) {
+                    result.add(list[i])
+                }
+            }
+        }
 
-    fun getNextTimeForBridgesRequest(): Long
-    fun setNextTimeForBridgesRequest(time: Long)
-
-    fun getLastDefaultBridges(): Set<String>
-    fun setLastDefaultBridges(bridges: Set<String>)
-
-    fun getLastCustomBridges(): Set<String>
-    fun setLastCustomBridges(bridges: Set<String>)
+        return result
+    }
 }

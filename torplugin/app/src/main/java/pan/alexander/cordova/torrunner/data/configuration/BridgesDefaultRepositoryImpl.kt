@@ -24,11 +24,14 @@ import dalvik.system.ZipPathValidator
 import kotlinx.coroutines.isActive
 import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
+import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.interleave
+import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.isVanillaBridge
+import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.isWebTunnelBridge
+import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.webTunnelSniRegex
 import pan.alexander.cordova.torrunner.domain.configuration.RendezvousType
 import pan.alexander.cordova.torrunner.domain.configuration.SnowflakeRepository
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 import pan.alexander.cordova.torrunner.domain.sni.SniRepository
-import pan.alexander.cordova.torrunner.utils.file.FileManager
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logw
@@ -47,11 +50,8 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
     private val configuration: ConfigurationRepository,
     private val snowflakeRepository: SnowflakeRepository,
     private val sniRepository: SniRepository,
-    private val fileManager: FileManager,
     private val preferences: PreferenceRepository
 ) : BridgesDefaultRepository {
-
-    private val webTunnelSniRegex by lazy { Regex(" servername(s)?=\\S+") }
 
     private val failedBridgesAccordingTorLog by lazy { mutableListOf<String>() }
 
@@ -80,21 +80,6 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         interleave(webTunnelBridges, vanillaBridges, obfs3Bridges, obfs4Bridges)
     }
 
-    fun <T> interleave(vararg lists: List<T>): List<T> {
-        val result = mutableListOf<T>()
-        val maxSize = lists.maxOf { it.size }
-
-        for (i in 0 until maxSize) {
-            for (list in lists) {
-                if (i < list.size) {
-                    result.add(list[i])
-                }
-            }
-        }
-
-        return result
-    }
-
     override suspend fun getNextBridgesFromAutoQueue(): List<String> {
         val currentBridges = configuration.getCurrentBridges()
         val queue = autoBridgesQueue
@@ -112,10 +97,8 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         return queue[0]
     }
 
-    override suspend fun getNextBridgesFromCheckingQueue(currentBridges: List<String>): List<String> {
-        val checkedBridges = currentBridges.ifEmpty {
-            getLastCheckedBridges()
-        }.map {
+    override suspend fun getNextBridgesFromCheckingQueue(): List<String> {
+        val checkedBridges = getLastCheckedBridges().map {
             if (it.isWebTunnelBridge()) {
                 it.replace(webTunnelSniRegex, "")
             } else {
@@ -149,28 +132,20 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
             val fakeSni = sniRepository.getFakeSniHosts()
             preferences.setLastSni(fakeSni)
             if (fakeSni.isNotEmpty()) {
-                return nextBridges.map {
+                nextBridges = nextBridges.map {
                     "$it servername=${fakeSni.joinToString(",")}"
                 }
             }
         }
+
+        setLastCheckedBridges(nextBridges)
+
         return nextBridges
     }
 
-    private fun String.isWebTunnelBridge() = startsWith("webtunnel")
+    private fun getLastCheckedBridges(): List<String> = preferences.getLastDefaultBridges().toList()
 
-    private fun String.isVanillaBridge() = matches(Regex("^(\\d|\\[).+"))
-
-    private fun getLastCheckedBridges(): List<String> = try {
-        fileManager.readFile(configuration.getTorCheckerConfPath()).filter {
-            it.startsWith("Bridge ")
-        }.map {
-            it.removePrefix("Bridge ")
-        }
-    } catch (e: Exception) {
-        loge("BridgesDefaultRepository getLastCheckedBridges", e)
-        emptyList()
-    }
+    private fun setLastCheckedBridges(bridges: List<String>) = preferences.setLastDefaultBridges(bridges.toSet())
 
     override fun getCheckFailedBridges(): List<String> = failedBridgesAccordingTorLog
 
@@ -185,18 +160,18 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
     override fun getAutoQueueLength(): Int = autoBridgesQueue.size
     override fun getCheckQueueLength(): Int = checkBridgesQueue.size
 
-    override fun getDefaultBridges(): List<String> =
+    private fun getDefaultBridges(): List<String> =
         File(configuration.getTorDefaultBridgesPath()).readLines()
 
-    override fun getDefaultObfs4Bridges(): List<String> = getDefaultBridges().filter {
+    private fun getDefaultObfs4Bridges(): List<String> = getDefaultBridges().filter {
         it.startsWith("obfs4")
     }
 
-    override fun getDefaultObfs3Bridges(): List<String> = getDefaultBridges().filter {
+    private fun getDefaultObfs3Bridges(): List<String> = getDefaultBridges().filter {
         it.startsWith("obfs3")
     }
 
-    override fun getDefaultMeekLiteBridges(): List<String> = getDefaultBridges().filter {
+    private fun getDefaultMeekLiteBridges(): List<String> = getDefaultBridges().filter {
         it.startsWith("meek_lite")
     }
 
@@ -204,15 +179,15 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         it.startsWith("snowflake")
     }
 
-    override fun getDefaultConjureBridges(): List<String> = getDefaultBridges().filter {
+    private fun getDefaultConjureBridges(): List<String> = getDefaultBridges().filter {
         it.startsWith("conjure")
     }
 
-    override fun getDefaultWebTunnelBridges(): List<String> = getDefaultBridges().filter {
+    private fun getDefaultWebTunnelBridges(): List<String> = getDefaultBridges().filter {
         it.startsWith("webtunnel")
     }
 
-    override fun getDefaultVanillaBridges(): List<String>  = getDefaultBridges().filter {
+    private fun getDefaultVanillaBridges(): List<String>  = getDefaultBridges().filter {
         it.startsWith("vanilla")
     }
 

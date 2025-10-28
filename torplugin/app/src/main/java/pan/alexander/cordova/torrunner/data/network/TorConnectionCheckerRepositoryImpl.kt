@@ -25,11 +25,11 @@ import pan.alexander.cordova.torrunner.utils.Constants.CLOUDFLARE_WEBSITE
 import pan.alexander.cordova.torrunner.utils.Constants.GOOGLE_WEBSITE
 import pan.alexander.cordova.torrunner.utils.Constants.QUAD9_WEBSITE
 import pan.alexander.cordova.torrunner.utils.Constants.TOR_PROJECT_WEBSITE
-import pan.alexander.cordova.torrunner.utils.addresschecker.AddressChecker
+import pan.alexander.cordova.torrunner.utils.addresschecker.HttpAddressChecker
 import javax.inject.Inject
 
 class TorConnectionCheckerRepositoryImpl @Inject constructor(
-    private val addressChecker: AddressChecker,
+    private val addressChecker: HttpAddressChecker,
     private val configurationRepository: ConfigurationRepository
 ) : TorConnectionCheckerRepository {
 

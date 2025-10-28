@@ -20,16 +20,9 @@
 package pan.alexander.cordova.torrunner.domain.configuration
 
 interface BridgesDefaultRepository {
-    fun getDefaultBridges(): List<String>
-    fun getDefaultObfs4Bridges(): List<String>
-    fun getDefaultObfs3Bridges(): List<String>
-    fun getDefaultMeekLiteBridges(): List<String>
-    fun getDefaultSnowflakeBridges(): List<String>
-    fun getDefaultConjureBridges(): List<String>
-    fun getDefaultWebTunnelBridges(): List<String>
-    fun getDefaultVanillaBridges(): List<String>
     suspend fun getNextBridgesFromAutoQueue(): List<String>
-    suspend fun getNextBridgesFromCheckingQueue(currentBridges: List<String>): List<String>
+    suspend fun getNextBridgesFromCheckingQueue(): List<String>
+    fun getDefaultSnowflakeBridges(): List<String>
     fun getCheckFailedBridges(): List<String>
     fun addCheckFailedBridge(bridgeAddress: String)
     fun clearCheckFailedBridges()

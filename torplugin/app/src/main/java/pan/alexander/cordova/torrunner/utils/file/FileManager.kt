@@ -163,10 +163,15 @@ class FileManager @Inject constructor() {
             false
         }
 
+    fun appendToFile(path: String, content: List<String>): Boolean {
+        val file = File(path)
+        return appendToFile(file, content.joinToString(System.lineSeparator()))
+    }
+
     fun appendToFile(file: File, content: String): Boolean =
         try {
             FileWriter(file, true).buffered().use { writer ->
-                content.forEach { line -> writer.write(line + System.lineSeparator()) }
+                writer.write(content)
             }
             true
         } catch (e: IOException) {

@@ -79,6 +79,20 @@ class ConfigurationRepositoryImpl @Inject constructor(
             it <= MAX_PORT_NUMBER
         } ?: configurationManager.torDefaultSocksPort
 
+    override fun getTorHttpPort(): Int = getTorConfiguration().find {
+        it.first == "HTTPTunnelPort"
+    }?.second?.substringAfterLast(":")
+        ?.takeIf {
+            it.matches(numberRegex)
+        }?.toInt()?.takeIf {
+            it <= MAX_PORT_NUMBER
+        } ?: run {
+        val torConf = getTorConfiguration()
+        val newTorConf = setTorHttpPort(torConf, configurationManager.torDefaultHttpPort.toString())
+        updateTorConfiguration(torConf, newTorConf)
+        configurationManager.torDefaultHttpPort
+    }
+
     override fun getTorConfigurationDir() = configurationManager.torConfigurationDir
 
     override fun getTorConfPath() = configurationManager.torConfPath
@@ -97,9 +111,13 @@ class ConfigurationRepositoryImpl @Inject constructor(
 
     override fun getTorDefaultSocksPort() = configurationManager.torDefaultSocksPort
 
+    override fun getTorDefaultHttpPort() = configurationManager.torDefaultHttpPort
+
     override fun getTorAssetStream() = configurationManager.torAssetsStream()
 
     override fun getTorDefaultBridgesPath() = configurationManager.torDefaultBridgesPath
+
+    override fun getTorCustomBridgesPath() = configurationManager.torCustomBridgesPath
 
     override fun getTorConfiguration(): List<Pair<String, String>> {
         val result = mutableListOf<Pair<String, String>>()
@@ -399,6 +417,38 @@ class ConfigurationRepositoryImpl @Inject constructor(
         torConf
     }
 
+    private fun setTorHttpPort(
+        torConf: List<Pair<String, String>>,
+        port: String
+    ): List<Pair<String, String>> = try {
+
+        val newTorConf = torConf.toMutableList()
+
+        val newPort = port.takeIf {
+            it.matches(numberRegex)
+        }?.toInt()?.takeIf {
+            it <= MAX_PORT_NUMBER
+        } ?: 0
+
+        if (newPort != 0) {
+            for (i in newTorConf.indices) {
+                val pair = newTorConf[i]
+                if (pair.first == "HTTPTunnelPort" || pair.first == "#HTTPTunnelPort") {
+                    val currentPort = pair.second.substringAfterLast(":")
+                    newTorConf[i] = Pair(
+                        "HTTPTunnelPort",
+                        pair.second.replace(currentPort, newPort.toString())
+                    )
+                }
+            }
+        }
+
+        newTorConf
+    } catch (e: Exception) {
+        loge("ConfigurationRepository setTorHttpPort", e)
+        torConf
+    }
+
     private fun setTorMode(torMode: String) {
         val mode = try {
             TorMode.valueOf(torMode)
@@ -428,7 +478,7 @@ class ConfigurationRepositoryImpl @Inject constructor(
             else -> BridgeType.VANILLA
         }
 
-    private fun getClientTransportPlugin(bridgeType: BridgeType) = when(bridgeType) {
+    private fun getClientTransportPlugin(bridgeType: BridgeType) = when (bridgeType) {
         BridgeType.OBFS3, BridgeType.OBFS4, BridgeType.MEEK_LITE, BridgeType.WEBTUNNEL -> configurationManager.obfsPath
         BridgeType.SNOWFLAKE -> configurationManager.snowflakePath
         BridgeType.CONJURE -> configurationManager.conjurePath

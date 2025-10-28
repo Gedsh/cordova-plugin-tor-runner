@@ -17,30 +17,11 @@
     Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
  */
 
-package pan.alexander.cordova.torrunner.domain.preferences
+package pan.alexander.cordova.torrunner.domain.configuration
 
-import pan.alexander.cordova.torrunner.domain.core.TorMode
-import pan.alexander.cordova.torrunner.domain.network.NetworkType
+interface BridgesCustomRepository {
+    fun startRequestingBridgesFromTorProjectDb()
+    fun stopRequestingBridgesFromTorProjectDb()
 
-interface PreferenceRepository {
-    fun getTorMode(): TorMode
-    fun setTorMode(mode: TorMode)
-
-    fun getLastNetwork(): NetworkType
-    fun setLastNetwork(networkType: NetworkType)
-
-    fun getLocales(): List<String>
-    fun setLocales(locales: List<String>)
-
-    fun getLastSni(): List<String>
-    fun setLastSni(sni: List<String>)
-
-    fun getNextTimeForBridgesRequest(): Long
-    fun setNextTimeForBridgesRequest(time: Long)
-
-    fun getLastDefaultBridges(): Set<String>
-    fun setLastDefaultBridges(bridges: Set<String>)
-
-    fun getLastCustomBridges(): Set<String>
-    fun setLastCustomBridges(bridges: Set<String>)
+    suspend fun getNextBridgesFromCheckingQueue(): List<String>
 }

@@ -17,7 +17,7 @@ import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
-class AddressChecker @Inject constructor() {
+class HttpAddressChecker @Inject constructor() {
 
     private val trustAllCerts by lazy {
         arrayOf<TrustManager>(

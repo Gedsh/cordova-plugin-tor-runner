@@ -24,4 +24,7 @@ object PreferenceKeys {
     const val LAST_NETWORK = "LAST_NETWORK"
     const val LOCALES = "LOCALES"
     const val LAST_SNI = "LAST_SNI"
+    const val NEXT_TIME_FOR_BRIDGES_REQUEST = "NEXT_TIME_FOR_BRIDGES_REQUEST"
+    const val LAST_DEFAULT_BRIDGES = "LAST_DEFAULT_BRIDGES"
+    const val LAST_CUSTOM_BRIDGES = "LAST_CUSTOM_BRIDGES"
 }

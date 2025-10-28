@@ -36,6 +36,7 @@ interface ConfigurationRepository {
     fun getWebTunnelPath(): String
     fun getConjurePath(): String
     fun getTorSocksPort(): Int
+    fun getTorHttpPort(): Int
     fun getTorConfigurationDir(): String
     fun getTorConfPath(): String
     fun getTorCheckerConfPath(): String
@@ -45,8 +46,10 @@ interface ConfigurationRepository {
     fun getTorCheckerPidPath(): String
     fun getTorCheckerDataPath(): String
     fun getTorDefaultSocksPort(): Int
+    fun getTorDefaultHttpPort(): Int
     fun getTorAssetStream(): InputStream
     fun getTorDefaultBridgesPath(): String
+    fun getTorCustomBridgesPath(): String
 
     fun getTorConfiguration(): List<Pair<String, String>>
     fun updateTorConfiguration(

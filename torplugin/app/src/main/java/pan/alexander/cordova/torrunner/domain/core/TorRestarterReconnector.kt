@@ -24,6 +24,7 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pan.alexander.cordova.torrunner.domain.configuration.BridgeType
+import pan.alexander.cordova.torrunner.domain.configuration.BridgesCustomRepository
 import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.configuration.RendezvousType
@@ -55,6 +56,7 @@ class TorRestarterReconnector @Inject constructor(
     private val fileManager: FileManager,
     private val actionSender: ActionSender,
     private val bridgesDefaultRepository: BridgesDefaultRepository,
+    private val bridgesCustomRepository: BridgesCustomRepository,
     private val torCheckerManager: TorCheckerManager
 ) {
 
@@ -313,13 +315,21 @@ class TorRestarterReconnector @Inject constructor(
                 if (coreStatus.torState == CoreState.RUNNING && isNetworkAvailable()) {
                     checkBridgesCounter++
                     if (configuration.getCurrentBridgeType() != BridgeType.NONE) {
-                        val bridges = currentBridgesToCheck.toList()
                         currentBridgesToCheck.clear()
-                        currentBridgesToCheck.addAll(checkNextBridges(bridges))
+                        if (checkBridgesCounter % 2 == 0) {
+                            currentBridgesToCheck.addAll(checkNextDefaultBridges())
+                        } else {
+                            currentBridgesToCheck.addAll(checkNextCustomBridges())
+                        }
                         for (bridge in currentBridgesToCheck) {
+                            val type = if (checkBridgesCounter % 2 == 0) {
+                                "default"
+                            } else {
+                                "custom"
+                            }
                             if (bridge.count { it == " "[0] } > 1) {
                                 logi(
-                                    "Check next bridge: ${
+                                    "Check next $type bridge: ${
                                         bridge.substring(
                                             0,
                                             bridge.indexOf(" ", bridge.indexOf(" ") + 1)
@@ -327,7 +337,7 @@ class TorRestarterReconnector @Inject constructor(
                                     }"
                                 )
                             } else {
-                                logi("Check next bridge: $bridge")
+                                logi("Check next $type bridge: $bridge")
                             }
                         }
                     } else {
@@ -400,8 +410,15 @@ class TorRestarterReconnector @Inject constructor(
         }
     }
 
-    private suspend fun checkNextBridges(bridges: List<String>): List<String> {
-        val bridges = bridgesDefaultRepository.getNextBridgesFromCheckingQueue(bridges)
+    private suspend fun checkNextDefaultBridges(): List<String> {
+        val bridges = bridgesDefaultRepository.getNextBridgesFromCheckingQueue()
+        torCheckerManager.runTorChecker(bridges)
+        coreStatus.torCheckerLoadingPercent = 0
+        return bridges
+    }
+
+    private suspend fun checkNextCustomBridges(): List<String> {
+        val bridges = bridgesCustomRepository.getNextBridgesFromCheckingQueue()
         torCheckerManager.runTorChecker(bridges)
         coreStatus.torCheckerLoadingPercent = 0
         return bridges
