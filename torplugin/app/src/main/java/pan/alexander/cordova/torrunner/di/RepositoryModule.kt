@@ -26,6 +26,7 @@ import pan.alexander.cordova.torrunner.data.configuration.BridgesCustomRepositor
 import pan.alexander.cordova.torrunner.data.configuration.BridgesDefaultRepositoryImpl
 import pan.alexander.cordova.torrunner.data.configuration.ConfigurationRepositoryImpl
 import pan.alexander.cordova.torrunner.data.configuration.SnowflakeRepositoryImpl
+import pan.alexander.cordova.torrunner.data.configuration.VanillaRelaysRepositoryImpl
 import pan.alexander.cordova.torrunner.data.network.NetworkRepositoryImpl
 import pan.alexander.cordova.torrunner.data.network.TorConnectionCheckerRepositoryImpl
 import pan.alexander.cordova.torrunner.data.preferences.PreferenceRepositoryImpl
@@ -35,6 +36,7 @@ import pan.alexander.cordova.torrunner.domain.configuration.BridgesCustomReposit
 import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.configuration.SnowflakeRepository
+import pan.alexander.cordova.torrunner.domain.configuration.VanillaRelaysRepository
 import pan.alexander.cordova.torrunner.domain.network.NetworkRepository
 import pan.alexander.cordova.torrunner.domain.network.TorConnectionCheckerRepository
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
@@ -82,6 +84,11 @@ abstract class RepositoryModule {
     abstract fun bindBridgesCustomRepository(
         repositoryImpl: BridgesCustomRepositoryImpl
     ): BridgesCustomRepository
+
+    @Binds
+    abstract fun bindVanillaRelaysRepository(
+        repositoryImpl: VanillaRelaysRepositoryImpl
+    ): VanillaRelaysRepository
 
     @Binds
     abstract fun bindSniRepository(

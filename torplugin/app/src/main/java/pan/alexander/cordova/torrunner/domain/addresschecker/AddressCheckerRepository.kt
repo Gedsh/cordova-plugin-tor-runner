@@ -8,7 +8,7 @@ interface AddressCheckerRepository {
         domains: List<String>,
         timeoutSec: Int = CHECK_ADDRESS_TIMEOUT_SEC
     ): List<String>
-    fun isAddressReachable(address: IpToPort): Boolean
+    fun isAddressReachable(address: IpToPort, timeoutSec: Int): Boolean
     suspend fun getReachableIps(
         ips: List<IpToPort>,
         timeoutSec: Int = CHECK_ADDRESS_TIMEOUT_SEC

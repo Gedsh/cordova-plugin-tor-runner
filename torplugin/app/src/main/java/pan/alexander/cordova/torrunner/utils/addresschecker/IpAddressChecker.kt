@@ -19,6 +19,7 @@
 
 package pan.alexander.cordova.torrunner.utils.addresschecker
 
+import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import java.lang.Exception
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -26,7 +27,6 @@ import javax.inject.Inject
 
 private const val CONNECT_TIMEOUT_SEC = 5
 private const val READ_TIMEOUT_SEC = 5
-private const val READ_SIZE_KB = 17
 
 class IpAddressChecker @Inject constructor() {
     fun isIpAddressReachable(
@@ -39,12 +39,7 @@ class IpAddressChecker @Inject constructor() {
             val address = InetSocketAddress(ip, port)
             socket.connect(address, connectTimeoutSec * 1000)
             socket.soTimeout = readTimeoutSec * 1000
-
-            val input = socket.getInputStream()
-            val buffer = ByteArray(READ_SIZE_KB * 1024)
-            val bytesRead = input.read(buffer)
-
-            bytesRead >= 0 || socket.isConnected
+            socket.isConnected
         }
     } catch (_: Exception) {
         false

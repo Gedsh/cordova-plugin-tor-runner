@@ -133,8 +133,13 @@ class AddressCheckerRepositoryImpl @Inject constructor(
         emptyList()
     }
 
-    override fun isAddressReachable(address: IpToPort): Boolean {
-        return ipAddressChecker.isIpAddressReachable(address.ip, address.port)
+    override fun isAddressReachable(address: IpToPort, timeoutSec: Int): Boolean {
+        return ipAddressChecker.isIpAddressReachable(
+            address.ip,
+            address.port,
+            timeoutSec,
+            timeoutSec
+        )
     }
 
     override suspend fun getReachableIps(

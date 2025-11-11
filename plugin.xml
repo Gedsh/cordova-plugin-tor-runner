@@ -214,10 +214,16 @@
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/configuration/ConfigurationUtils.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/configuration" />
         <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/configuration/RelayAddressFingerprint.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/configuration" />
+        <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/configuration/RendezvousType.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/configuration" />
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/configuration/SnowflakeRepository.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/configuration" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/configuration/VanillaRelaysRepository.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/configuration" />
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/CommandResult.java"
@@ -301,6 +307,9 @@
                 target-dir="java/pan/alexander/cordova/torrunner/data/configuration" />
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/configuration/SnowflakeRepositoryImpl.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/data/configuration" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/configuration/VanillaRelaysRepositoryImpl.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/data/configuration" />
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/network/NetworkRepositoryImpl.kt"

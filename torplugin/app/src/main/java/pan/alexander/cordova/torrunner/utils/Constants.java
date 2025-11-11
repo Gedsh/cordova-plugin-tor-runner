@@ -29,6 +29,7 @@ public interface Constants {
     String CHROME_BROWSER_USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36";
 
     String TOR_PROJECT_WEBSITE = "www.torproject.org";
+    String ONIONOO_SITE_ADDRESS = "https://onionoo.torproject.org/";
     String TOR_BRIDGES_ADDRESS = "https://bridges.torproject.org/";
     String GOOGLE_WEBSITE = "www.google.com";
     String CLOUDFLARE_WEBSITE  = "www.cloudflare.com";

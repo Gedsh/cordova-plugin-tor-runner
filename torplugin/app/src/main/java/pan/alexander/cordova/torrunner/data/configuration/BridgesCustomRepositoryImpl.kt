@@ -26,6 +26,7 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
@@ -40,6 +41,7 @@ import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.i
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.isWebTunnelBridge
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.isVanillaBridge
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.webTunnelSniRegex
+import pan.alexander.cordova.torrunner.domain.configuration.VanillaRelaysRepository
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 import pan.alexander.cordova.torrunner.domain.sni.SniRepository
 import pan.alexander.cordova.torrunner.utils.Constants.IPv4_REGEX
@@ -62,12 +64,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.collections.chunked
 import kotlin.collections.firstOrNull
-import kotlin.coroutines.coroutineContext
 import kotlin.random.Random
 import kotlin.text.contains
 
 private const val REQUEST_BRIDGES_INTERVAL_HOURS = 24
 private const val REQUEST_BRIDGES_RETRY_INTERVAL_HOURS = 1
+
+private const val MIN_DELAY_MSEC = 1000
+private const val MAX_DELAY_MSEC = 5000
 
 @Singleton
 class BridgesCustomRepositoryImpl @Inject constructor(
@@ -78,7 +82,8 @@ class BridgesCustomRepositoryImpl @Inject constructor(
     private val preferences: PreferenceRepository,
     private val dispatcherIo: CoroutineDispatcher,
     private val addressCheckerRepository: AddressCheckerRepository,
-    private val sniRepository: SniRepository
+    private val sniRepository: SniRepository,
+    private val vanillaRelaysRepository: VanillaRelaysRepository
 ) : BridgesCustomRepository {
 
     private val ipv4BridgeBase = "(\\d{1,3}\\.){3}\\d{1,3}:\\d+ +\\w{40}"
@@ -140,18 +145,23 @@ class BridgesCustomRepositoryImpl @Inject constructor(
 
             scope.launch {
                 try {
-                    delay(Random.Default.nextInt(1000, 5000).toLong())
+                    makeRandomDelay()
                     val webTunnelBridges = requestWebTunnelBridges()
 
-                    delay(Random.Default.nextInt(1000, 5000).toLong())
+                    makeRandomDelay()
                     val vanillaBridges = requestVanillaBridgesIPv4().map {
                         "vanilla $it"
                     }
 
-                    delay(Random.Default.nextInt(1000, 5000).toLong())
+                    makeRandomDelay()
                     val obfs4Bridges = requestObfs4BridgesIPv4()
 
-                    val bridges = webTunnelBridges + vanillaBridges + obfs4Bridges
+                    makeRandomDelay()
+                    val vanillaRelays = vanillaRelaysRepository.requestVanillaRelays(false).map {
+                        "vanilla $it"
+                    }
+
+                    val bridges = webTunnelBridges + vanillaBridges + vanillaRelays + obfs4Bridges
                     if (bridges.isNotEmpty()) {
                         preferences.setNextTimeForBridgesRequest(System.currentTimeMillis() + REQUEST_BRIDGES_INTERVAL_HOURS * 60 * 60 * 1000)
                         saveTorBridges(bridges)
@@ -180,7 +190,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         useTor = true
     ).also { bridges ->
         bridges.filter { bridge ->
-            coroutineContext.ensureActive()
+            currentCoroutineContext().ensureActive()
             val url = bridge.split(" ").find {
                 it.startsWith("url=")
             }?.removePrefix("url=")
@@ -216,7 +226,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         useTor = true
     ).also { bridges ->
         bridges.filter { bridge ->
-            coroutineContext.ensureActive()
+            currentCoroutineContext().ensureActive()
             val ipWithPort = bridge.substringBefore(" ")
             val ip = ipWithPort.substringBefore(":")
             var port = ipWithPort.substringAfter(":")
@@ -227,7 +237,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
                     ""
                 }
             if (ip.matches(ipv4Regex) && port.isNotEmpty()) {
-                addressCheckerRepository.isAddressReachable(IpToPort(ip, port.toInt()))
+                addressCheckerRepository.isAddressReachable(IpToPort(ip, port.toInt()), 5)
             } else {
                 false
             }
@@ -240,7 +250,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         useTor = true
     ).also { bridges ->
         bridges.filter { bridge ->
-            coroutineContext.ensureActive()
+            currentCoroutineContext().ensureActive()
             val ipWithPort = bridge.substringAfter("obfs4 ").substringBefore(" ")
             val ip = ipWithPort.substringBefore(":")
             var port = ipWithPort.substringAfter(":")
@@ -251,7 +261,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
                     ""
                 }
             if (ip.matches(ipv4Regex) && port.isNotEmpty()) {
-                addressCheckerRepository.isAddressReachable(IpToPort(ip, port.toInt()))
+                addressCheckerRepository.isAddressReachable(IpToPort(ip, port.toInt()), 5)
             } else {
                 false
             }
@@ -276,9 +286,9 @@ class BridgesCustomRepositoryImpl @Inject constructor(
             val bridges = queue[index]
             if (checkedBridges.size == bridges.size && checkedBridges.containsAll(bridges)) {
                 var offset = 1
-                while (index + offset < queue.size && coroutineContext.isActive) {
+                while (index + offset < queue.size && currentCoroutineContext().isActive) {
                     nextBridges = queue[index + offset]
-                    if (coroutineContext.isActive
+                    if (currentCoroutineContext().isActive
                         && sniRepository.isWhiteListSuspected()
                         && nextBridges.firstOrNull()?.isWebTunnelBridge() != true
                         && nextBridges.firstOrNull()?.isVanillaBridge() != true
@@ -294,7 +304,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
                 break
             }
         }
-        if (nextBridges.first().isWebTunnelBridge() && coroutineContext.isActive) {
+        if (nextBridges.first().isWebTunnelBridge() && currentCoroutineContext().isActive) {
             val fakeSni = sniRepository.getFakeSniHosts()
             preferences.setLastSni(fakeSni)
             if (fakeSni.isNotEmpty()) {
@@ -414,7 +424,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         inputStream.bufferedReader().use {
             var line = it.readLine()
 
-            while (line != null && coroutineContext.isActive) {
+            while (line != null && currentCoroutineContext().isActive) {
 
                 if (vanillaBridgePatternIPv4.matcher(line).find()
                     || vanillaBridgePatternIPv6.matcher(line).find()
@@ -507,6 +517,10 @@ class BridgesCustomRepositoryImpl @Inject constructor(
             )
         }
         return result
+    }
+
+    private suspend fun makeRandomDelay() {
+        delay(Random.nextInt(MIN_DELAY_MSEC, MAX_DELAY_MSEC).toLong())
     }
 
 }
