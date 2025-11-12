@@ -38,6 +38,7 @@ import pan.alexander.cordova.torrunner.domain.configuration.BridgeType
 import pan.alexander.cordova.torrunner.domain.configuration.BridgesCustomRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.interleave
+import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.isObfs4Bridge
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.isWebTunnelBridge
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.isVanillaBridge
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.webTunnelSniRegex
@@ -191,32 +192,36 @@ class BridgesCustomRepositoryImpl @Inject constructor(
     ).also { bridges ->
         bridges.filter { bridge ->
             currentCoroutineContext().ensureActive()
-            val url = bridge.split(" ").find {
-                it.startsWith("url=")
-            }?.removePrefix("url=")
-            if (url?.matches(urlRegex) == true) {
-                val domainWithPort = url.substringAfter("//").substringBefore("/")
-                val domain = domainWithPort.substringBefore(":")
-                var port = if (domainWithPort.contains(":")) {
-                    domainWithPort.substringAfter(":")
+            isWebTunnelBridgeReachable(bridge)
+        }
+    }
+
+    private fun isWebTunnelBridgeReachable(bridge: String): Boolean {
+        val url = bridge.split(" ").find {
+            it.startsWith("url=")
+        }?.removePrefix("url=")
+        return if (url?.matches(urlRegex) == true) {
+            val domainWithPort = url.substringAfter("//").substringBefore("/")
+            val domain = domainWithPort.substringBefore(":")
+            var port = if (domainWithPort.contains(":")) {
+                domainWithPort.substringAfter(":")
+            } else {
+                "443"
+            }
+            port =
+                if (port.matches(numberRegex) && port.length <= 5 && port.toInt() <= MAX_PORT_NUMBER) {
+                    port
                 } else {
                     "443"
                 }
-                port =
-                    if (port.matches(numberRegex) && port.length <= 5 && port.toInt() <= MAX_PORT_NUMBER) {
-                        port
-                    } else {
-                        "443"
-                    }
-                addressCheckerRepository.isAddressReachable(
-                    DomainToPort(
-                        domain,
-                        port.toInt()
-                    )
+            addressCheckerRepository.isAddressReachable(
+                DomainToPort(
+                    domain,
+                    port.toInt()
                 )
-            } else {
-                false
-            }
+            )
+        } else {
+            false
         }
     }
 
@@ -227,20 +232,24 @@ class BridgesCustomRepositoryImpl @Inject constructor(
     ).also { bridges ->
         bridges.filter { bridge ->
             currentCoroutineContext().ensureActive()
-            val ipWithPort = bridge.substringBefore(" ")
-            val ip = ipWithPort.substringBefore(":")
-            var port = ipWithPort.substringAfter(":")
-            port =
-                if (port.matches(numberRegex) && port.length <= 5 && port.toInt() <= MAX_PORT_NUMBER) {
-                    port
-                } else {
-                    ""
-                }
-            if (ip.matches(ipv4Regex) && port.isNotEmpty()) {
-                addressCheckerRepository.isAddressReachable(IpToPort(ip, port.toInt()), 5)
+            isVanillaBridgeIPv4Reachable(bridge)
+        }
+    }
+
+    private fun isVanillaBridgeIPv4Reachable(bridge: String): Boolean {
+        val ipWithPort = bridge.substringBefore(" ")
+        val ip = ipWithPort.substringBefore(":")
+        var port = ipWithPort.substringAfter(":")
+        port =
+            if (port.matches(numberRegex) && port.length <= 5 && port.toInt() <= MAX_PORT_NUMBER) {
+                port
             } else {
-                false
+                ""
             }
+        return if (ip.matches(ipv4Regex) && port.isNotEmpty()) {
+            addressCheckerRepository.isAddressReachable(IpToPort(ip, port.toInt()), 5)
+        } else {
+            false
         }
     }
 
@@ -251,20 +260,24 @@ class BridgesCustomRepositoryImpl @Inject constructor(
     ).also { bridges ->
         bridges.filter { bridge ->
             currentCoroutineContext().ensureActive()
-            val ipWithPort = bridge.substringAfter("obfs4 ").substringBefore(" ")
-            val ip = ipWithPort.substringBefore(":")
-            var port = ipWithPort.substringAfter(":")
-            port =
-                if (port.matches(numberRegex) && port.length <= 5 && port.toInt() <= MAX_PORT_NUMBER) {
-                    port
-                } else {
-                    ""
-                }
-            if (ip.matches(ipv4Regex) && port.isNotEmpty()) {
-                addressCheckerRepository.isAddressReachable(IpToPort(ip, port.toInt()), 5)
+            isObfs4BridgeIPv4Reachable(bridge)
+        }
+    }
+
+    private fun isObfs4BridgeIPv4Reachable(bridge: String): Boolean {
+        val ipWithPort = bridge.substringAfter("obfs4 ").substringBefore(" ")
+        val ip = ipWithPort.substringBefore(":")
+        var port = ipWithPort.substringAfter(":")
+        port =
+            if (port.matches(numberRegex) && port.length <= 5 && port.toInt() <= MAX_PORT_NUMBER) {
+                port
             } else {
-                false
+                ""
             }
+        return if (ip.matches(ipv4Regex) && port.isNotEmpty()) {
+            addressCheckerRepository.isAddressReachable(IpToPort(ip, port.toInt()), 5)
+        } else {
+            false
         }
     }
 
@@ -285,15 +298,52 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         for (index in queue.indices) {
             val bridges = queue[index]
             if (checkedBridges.size == bridges.size && checkedBridges.containsAll(bridges)) {
+                //Pick next bridge from the queue
                 var offset = 1
                 while (index + offset < queue.size && currentCoroutineContext().isActive) {
+                    if (!currentCoroutineContext().isActive) {
+                        break
+                    }
+
                     nextBridges = queue[index + offset]
-                    if (currentCoroutineContext().isActive
-                        && sniRepository.isWhiteListSuspected()
+
+                    if (sniRepository.isWhiteListSuspected()
                         && nextBridges.firstOrNull()?.isWebTunnelBridge() != true
                         && nextBridges.firstOrNull()?.isVanillaBridge() != true
                     ) {
                         offset++
+                    }
+
+                    if (index + offset == queue.size) {
+                        nextBridges = queue[0]
+                        break
+                    }
+
+                    nextBridges = queue[index + offset]
+
+                    if (nextBridges.firstOrNull()?.isWebTunnelBridge() == true
+                        && !sniRepository.isWhiteListSuspected()
+                    ) {
+                        nextBridges = nextBridges.filter { isWebTunnelBridgeReachable(it) }
+                        if (nextBridges.isEmpty()) {
+                            offset++
+                        } else {
+                            break
+                        }
+                    } else if (nextBridges.firstOrNull()?.isObfs4Bridge() == true) {
+                        nextBridges = nextBridges.filter { isObfs4BridgeIPv4Reachable(it) }
+                        if (nextBridges.isEmpty()) {
+                            offset++
+                        } else {
+                            break
+                        }
+                    } else if (nextBridges.firstOrNull()?.isVanillaBridge() == true) {
+                        nextBridges = nextBridges.filter { isVanillaBridgeIPv4Reachable(it) }
+                        if (nextBridges.isEmpty()) {
+                            offset++
+                        } else {
+                            break
+                        }
                     } else {
                         break
                     }

@@ -19,6 +19,7 @@
 
 package pan.alexander.cordova.torrunner.data.sni
 
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import pan.alexander.cordova.torrunner.domain.addresschecker.AddressCheckerRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
@@ -27,7 +28,6 @@ import pan.alexander.cordova.torrunner.domain.sni.SniRepository
 import pan.alexander.cordova.torrunner.utils.Constants.HOST_NAME_REGEX
 import java.io.File
 import javax.inject.Inject
-import kotlin.coroutines.coroutineContext
 
 private const val SNI_COUNT_TO_CHECK = 5
 private const val SNI_COUNT_TO_GET = 3
@@ -43,6 +43,7 @@ class SniRepositoryImpl @Inject constructor(
 
     private val hostNameRegex by lazy { Regex(HOST_NAME_REGEX) }
 
+    @Volatile
     private var whiteListSuspected = false
 
     override suspend fun getFakeSniHosts(): List<String> {
@@ -68,7 +69,7 @@ class SniRepositoryImpl @Inject constructor(
             val ruSni = getDefaultSni(COUNTRY_CODE_RU)
                 .shuffled()
                 .toMutableList()
-            while (ruSni.isNotEmpty() && coroutineContext.isActive) {
+            while (ruSni.isNotEmpty() && currentCoroutineContext().isActive) {
                 val sniToCheck = ruSni.take(SNI_COUNT_TO_CHECK).also {
                     ruSni.removeAll(it)
                 }

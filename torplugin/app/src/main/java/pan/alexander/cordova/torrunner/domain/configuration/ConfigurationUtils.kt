@@ -22,6 +22,8 @@ package pan.alexander.cordova.torrunner.domain.configuration
 object ConfigurationUtils {
     val webTunnelSniRegex by lazy { Regex(" servername(s)?=\\S+") }
 
+    fun String.isObfs4Bridge() = startsWith("obfs4")
+
     fun String.isWebTunnelBridge() = startsWith("webtunnel")
 
     fun String.isVanillaBridge() = matches(Regex("^(\\d|\\[).+"))

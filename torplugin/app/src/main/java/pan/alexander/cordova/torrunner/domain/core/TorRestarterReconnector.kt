@@ -410,18 +410,24 @@ class TorRestarterReconnector @Inject constructor(
         }
     }
 
-    private suspend fun checkNextDefaultBridges(): List<String> {
+    private suspend fun checkNextDefaultBridges(): List<String> = try {
         val bridges = bridgesDefaultRepository.getNextBridgesFromCheckingQueue()
         torCheckerManager.runTorChecker(bridges)
         coreStatus.torCheckerLoadingPercent = 0
-        return bridges
+        bridges
+    } catch (e: Exception) {
+        loge("TorRestarterReconnector checkNextDefaultBridges", e)
+        emptyList()
     }
 
-    private suspend fun checkNextCustomBridges(): List<String> {
+    private suspend fun checkNextCustomBridges(): List<String> = try {
         val bridges = bridgesCustomRepository.getNextBridgesFromCheckingQueue()
         torCheckerManager.runTorChecker(bridges)
         coreStatus.torCheckerLoadingPercent = 0
-        return bridges
+        bridges
+    } catch (e: Exception) {
+        loge("TorRestarterReconnector checkNextCustomBridges", e)
+        emptyList()
     }
 
     private fun stopTorChecker() {
