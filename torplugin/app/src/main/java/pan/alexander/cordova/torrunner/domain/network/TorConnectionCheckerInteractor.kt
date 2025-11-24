@@ -29,6 +29,8 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import pan.alexander.cordova.torrunner.domain.core.CoreState
+import pan.alexander.cordova.torrunner.domain.core.CoreStatus
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import pan.alexander.cordova.torrunner.utils.network.NetworkChecker
@@ -50,7 +52,8 @@ private const val CHECKING_TIMEOUT_SEC = 120
 class TorConnectionCheckerInteractor @Inject constructor(
     private val coroutineContext: CoroutineContext,
     private val networkChecker: NetworkChecker,
-    private val torConnectionChecker: TorConnectionCheckerRepository
+    private val torConnectionChecker: TorConnectionCheckerRepository,
+    private val coreStatus: CoreStatus
 ) {
 
     private val scopeIo by lazy {
@@ -108,7 +111,9 @@ class TorConnectionCheckerInteractor @Inject constructor(
                 var internetAvailable = false
                 while (isActive && !internetAvailable) {
 
-                    if (!networkChecker.isNetworkAvailable(true)) {
+                    if (coreStatus.torState != CoreState.RUNNING
+                        || !networkChecker.isNetworkAvailable(true)
+                    ) {
                         makeDelay(CHECK_INTERVAL_SEC)
                         continue
                     }
