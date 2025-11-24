@@ -38,7 +38,6 @@ import javax.inject.Inject
 import kotlin.math.ceil
 import kotlin.math.pow
 import kotlin.text.indexOf
-import kotlin.text.substring
 
 private const val DELAY_BEFORE_RESTART_TOR_SEC = 10
 private const val DELAY_BEFORE_FULL_RESTART_TOR_SEC = 60
@@ -286,10 +285,7 @@ class TorRestarterReconnector @Inject constructor(
             if (bridge.count { it == " "[0] } > 1) {
                 logi(
                     "Try bridge: ${
-                        bridge.substring(
-                            0,
-                            bridge.indexOf(" ", bridge.indexOf(" ") + 1)
-                        )
+                        bridge.take(bridge.indexOf(" ", bridge.indexOf(" ") + 1))
                     }"
                 )
             } else {
@@ -330,10 +326,7 @@ class TorRestarterReconnector @Inject constructor(
                             if (bridge.count { it == " "[0] } > 1) {
                                 logi(
                                     "Check next $type bridge: ${
-                                        bridge.substring(
-                                            0,
-                                            bridge.indexOf(" ", bridge.indexOf(" ") + 1)
-                                        )
+                                        bridge.take(bridge.indexOf(" ", bridge.indexOf(" ") + 1))
                                     }"
                                 )
                             } else {
@@ -348,17 +341,17 @@ class TorRestarterReconnector @Inject constructor(
                 delay(
                     getDelayForCheckingBridges() / 2
                 )
-                if (coreStatus.torCheckerLoadingPercent > 10 && coreStatus.torCheckerLoadingPercent < 100) {
+                if (coreStatus.torCheckerLoadingPercent in 11..<100) {
                     delay(
                         getDelayForCheckingBridges() / 2
                     )
                 }
-                if (coreStatus.torCheckerLoadingPercent > 65 && coreStatus.torCheckerLoadingPercent < 100) {
+                if (coreStatus.torCheckerLoadingPercent in 66..<100) {
                     delay(
                         EXTRA_DELAY_CHECK_BRIDGE_MINUTES * 60 * 1000L
                     )
                 }
-                if (coreStatus.torCheckerLoadingPercent > 90 && coreStatus.torCheckerLoadingPercent < 100) {
+                if (coreStatus.torCheckerLoadingPercent in 91..<100) {
                     delay(
                         EXTRA_DELAY_CHECK_BRIDGE_MINUTES * 60 * 1000L
                     )
@@ -387,10 +380,7 @@ class TorRestarterReconnector @Inject constructor(
                             if (bridge.count { it == " "[0] } > 1) {
                                 logi(
                                     "Use bridge: ${
-                                        bridge.substring(
-                                            0,
-                                            bridge.indexOf(" ", bridge.indexOf(" ") + 1)
-                                        )
+                                        bridge.take(bridge.indexOf(" ", bridge.indexOf(" ") + 1))
                                     }"
                                 )
                             } else {
