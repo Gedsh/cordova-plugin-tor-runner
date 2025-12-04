@@ -15,17 +15,10 @@
     along with Cordova Plugin Tor Runner.  If not, see <http://www.gnu.org/licenses/>.
 
     Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
- */
+*/
 
 package pan.alexander.cordova.torrunner.domain.configuration
 
-interface BridgesCustomRepository {
-    fun startRequestingBridgesFromTorProjectDb()
-    fun stopRequestingBridgesFromTorProjectDb()
-
-    suspend fun getNextBridgesFromCheckingQueue(): List<String>
-    fun getAutoQueueLength(): Int
-    fun reportBridgesReachable(bridges: List<String>)
-    fun reportBridgeAddressUnreachable(address: String)
-    fun deleteBridgeByIp(bridgeIp: String): Boolean
+interface BridgesCleanerManager {
+    fun reportBridgeReachable(bridge: String, reachable: Boolean)
 }

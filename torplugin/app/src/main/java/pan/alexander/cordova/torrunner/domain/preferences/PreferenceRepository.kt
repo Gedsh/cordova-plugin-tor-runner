@@ -43,4 +43,7 @@ interface PreferenceRepository {
 
     fun getLastCustomBridges(): Set<String>
     fun setLastCustomBridges(bridges: Set<String>)
+
+    fun addUnreachableBridgeRecord(bridge: String): Boolean
+    fun removeUnreachableBridgeRecord(bridge: String): Boolean
 }

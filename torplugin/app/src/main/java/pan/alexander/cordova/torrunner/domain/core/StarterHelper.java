@@ -49,6 +49,7 @@ import java.util.regex.Pattern;
 import javax.inject.Inject;
 
 import pan.alexander.cordova.torrunner.App;
+import pan.alexander.cordova.torrunner.domain.configuration.BridgesCustomRepository;
 import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultRepository;
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository;
 import pan.alexander.cordova.torrunner.domain.installer.Installer;
@@ -72,6 +73,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
     private final ActionSender actionSender;
     private final TorConnectionCheckerInteractor torConnectionCheckerInteractor;
     private final BridgesDefaultRepository bridgesDefaultRepository;
+    private final BridgesCustomRepository bridgesCustomRepository;
     private final PreferenceRepository preferences;
     private volatile long lastExtraConnectionCheck;
     private final Pattern bootstrappedPattern = Pattern.compile("Bootstrapped (\\d+)%");
@@ -89,6 +91,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             ActionSender actionSender,
             TorConnectionCheckerInteractor torConnectionCheckerInteractor,
             BridgesDefaultRepository bridgesDefaultRepository,
+            BridgesCustomRepository bridgesCustomRepository,
             PreferenceRepository preferences
     ) {
         this.configuration = configuration;
@@ -100,6 +103,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
         this.actionSender = actionSender;
         this.torConnectionCheckerInteractor = torConnectionCheckerInteractor;
         this.bridgesDefaultRepository = bridgesDefaultRepository;
+        this.bridgesCustomRepository = bridgesCustomRepository;
         this.preferences = preferences;
         this.lastExtraConnectionCheck = System.currentTimeMillis();
     }
@@ -405,6 +409,7 @@ public class StarterHelper implements ProcessStarter.OnStdOutputListener {
             String bridgeAddress = matcher.group(1);
             if (bridgeAddress != null) {
                 bridgesDefaultRepository.addCheckFailedBridge(bridgeAddress);
+                bridgesCustomRepository.reportBridgeAddressUnreachable(bridgeAddress);
             }
         }
 

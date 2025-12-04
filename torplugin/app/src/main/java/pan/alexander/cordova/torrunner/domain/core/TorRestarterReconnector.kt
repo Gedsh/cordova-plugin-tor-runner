@@ -107,7 +107,8 @@ class TorRestarterReconnector @Inject constructor(
                 val bridgeType = configuration.getCurrentBridgeType()
                 if (bridgeType == BridgeType.SNOWFLAKE
                     || bridgeType == BridgeType.CONJURE
-                    || bridgeType == BridgeType.MEEK_LITE) {
+                    || bridgeType == BridgeType.MEEK_LITE
+                ) {
                     startCheckingBridges()
                 }
             }
@@ -374,8 +375,10 @@ class TorRestarterReconnector @Inject constructor(
                     val bridgeType = configuration.getCurrentBridgeType()
                     if (bridgeType == BridgeType.SNOWFLAKE
                         || bridgeType == BridgeType.CONJURE
-                        || bridgeType == BridgeType.MEEK_LITE) {
+                        || bridgeType == BridgeType.MEEK_LITE
+                    ) {
                         configuration.setBridges(bridgesToUse)
+                        bridgesCustomRepository.reportBridgesReachable(bridgesToUse)
                         for (bridge in bridgesToUse) {
                             if (bridge.count { it == " "[0] } > 1) {
                                 logi(
@@ -439,7 +442,8 @@ class TorRestarterReconnector @Inject constructor(
 
     private fun getDelayForRotatingBridges() =
         1000L * 60 * MIN_DELAY_ROTATE_BRIDGE_MINUTES * ceil(
-            rotateBridgesCounter / bridgesDefaultRepository.getAutoQueueLength().toDouble()
+            rotateBridgesCounter / (bridgesDefaultRepository.getAutoQueueLength()
+                .toDouble() + bridgesCustomRepository.getAutoQueueLength().toDouble())
         ).toLong()
 
     private fun getDelayForCheckingBridges() =

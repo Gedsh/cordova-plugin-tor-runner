@@ -35,6 +35,7 @@ import pan.alexander.cordova.torrunner.domain.addresschecker.AddressCheckerRepos
 import pan.alexander.cordova.torrunner.domain.addresschecker.DomainToPort
 import pan.alexander.cordova.torrunner.domain.addresschecker.IpToPort
 import pan.alexander.cordova.torrunner.domain.configuration.BridgeType
+import pan.alexander.cordova.torrunner.domain.configuration.BridgesCleanerManager
 import pan.alexander.cordova.torrunner.domain.configuration.BridgesCustomRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationUtils.interleave
@@ -70,6 +71,7 @@ import kotlin.text.contains
 
 private const val REQUEST_BRIDGES_INTERVAL_HOURS = 24
 private const val REQUEST_BRIDGES_RETRY_INTERVAL_HOURS = 1
+private const val MAX_BRIDGES_QUANTITY = 300
 
 private const val MIN_DELAY_MSEC = 1000
 private const val MAX_DELAY_MSEC = 5000
@@ -84,7 +86,8 @@ class BridgesCustomRepositoryImpl @Inject constructor(
     private val dispatcherIo: CoroutineDispatcher,
     private val addressCheckerRepository: AddressCheckerRepository,
     private val sniRepository: SniRepository,
-    private val vanillaRelaysRepository: VanillaRelaysRepository
+    private val vanillaRelaysRepository: VanillaRelaysRepository,
+    private val bridgesCleanerManager: BridgesCleanerManager
 ) : BridgesCustomRepository {
 
     private val ipv4BridgeBase = "(\\d{1,3}\\.){3}\\d{1,3}:\\d+ +\\w{40}"
@@ -146,21 +149,41 @@ class BridgesCustomRepositoryImpl @Inject constructor(
 
             scope.launch {
                 try {
-                    makeRandomDelay()
-                    val webTunnelBridges = requestWebTunnelBridges()
+                    val webTunnelBridges =
+                        if (getCustomWebTunnelBridges().size < MAX_BRIDGES_QUANTITY) {
+                            makeRandomDelay()
+                            requestWebTunnelBridges()
+                        } else {
+                            emptyList()
+                        }
 
-                    makeRandomDelay()
-                    val vanillaBridges = requestVanillaBridgesIPv4().map {
-                        "vanilla $it"
-                    }
+                    val vanillaBridges =
+                        if (getCustomVanillaBridgesIPv4().size < MAX_BRIDGES_QUANTITY) {
+                            makeRandomDelay()
+                            requestVanillaBridgesIPv4().map {
+                                "vanilla $it"
+                            }
+                        } else {
+                            emptyList()
+                        }
 
-                    makeRandomDelay()
-                    val obfs4Bridges = requestObfs4BridgesIPv4()
+                    val obfs4Bridges =
+                        if (getCustomObfs4BridgesIPv4().size < MAX_BRIDGES_QUANTITY) {
+                            makeRandomDelay()
+                            requestObfs4BridgesIPv4()
+                        } else {
+                            emptyList()
+                        }
 
-                    makeRandomDelay()
-                    val vanillaRelays = vanillaRelaysRepository.requestVanillaRelays(false).map {
-                        "vanilla $it"
-                    }
+                    val vanillaRelays =
+                        if (getCustomVanillaBridgesIPv4().size < MAX_BRIDGES_QUANTITY) {
+                            makeRandomDelay()
+                            vanillaRelaysRepository.requestVanillaRelays(false).map {
+                                "vanilla $it"
+                            }
+                        } else {
+                            emptyList()
+                        }
 
                     val bridges = webTunnelBridges + vanillaBridges + vanillaRelays + obfs4Bridges
                     if (bridges.isNotEmpty()) {
@@ -219,8 +242,13 @@ class BridgesCustomRepositoryImpl @Inject constructor(
                     domain,
                     port.toInt()
                 )
-            )
+            ).also { reachable ->
+                if (!reachable) {
+                    bridgesCleanerManager.reportBridgeReachable(bridge, false)
+                }
+            }
         } else {
+            deleteBridge(bridge)
             false
         }
     }
@@ -248,7 +276,13 @@ class BridgesCustomRepositoryImpl @Inject constructor(
             }
         return if (ip.matches(ipv4Regex) && port.isNotEmpty()) {
             addressCheckerRepository.isAddressReachable(IpToPort(ip, port.toInt()), 5)
+                .also { reachable ->
+                    if (!reachable) {
+                        bridgesCleanerManager.reportBridgeReachable(bridge, false)
+                    }
+                }
         } else {
+            deleteBridge(bridge)
             false
         }
     }
@@ -276,7 +310,13 @@ class BridgesCustomRepositoryImpl @Inject constructor(
             }
         return if (ip.matches(ipv4Regex) && port.isNotEmpty()) {
             addressCheckerRepository.isAddressReachable(IpToPort(ip, port.toInt()), 5)
+                .also { reachable ->
+                    if (!reachable) {
+                        bridgesCleanerManager.reportBridgeReachable(bridge, false)
+                    }
+                }
         } else {
+            deleteBridge(bridge)
             false
         }
     }
@@ -369,6 +409,46 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         return nextBridges
     }
 
+    override fun getAutoQueueLength(): Int = checkBridgesQueue.size
+
+    override fun reportBridgesReachable(bridges: List<String>) {
+        bridges.forEach {
+            bridgesCleanerManager.reportBridgeReachable(it, true)
+        }
+    }
+
+    override fun reportBridgeAddressUnreachable(address: String) {
+        getCustomBridges().firstOrNull {
+            it.contains(address)
+        }?.let {
+            bridgesCleanerManager.reportBridgeReachable(it, false)
+        }
+    }
+
+    private fun deleteBridge(bridge: String) = try {
+        getCustomBridges().filter {
+            bridge != it
+        }.let {
+            fileManager.rewriteFile(configuration.getTorCustomBridgesPath(), it)
+        }
+        true
+    } catch (e: Exception) {
+        logw("BridgesCustomRepository deleteBridge", e)
+        false
+    }
+
+    override fun deleteBridgeByIp(bridgeIp: String) = try {
+        getCustomBridges().filter {
+            !it.contains(bridgeIp)
+        }.let {
+            fileManager.rewriteFile(configuration.getTorCustomBridgesPath(), it)
+        }
+        true
+    } catch (e: Exception) {
+        logw("BridgesCustomRepository deleteBridgeByIp", e)
+        false
+    }
+
     private fun getLastCheckedBridges() = preferences.getLastCustomBridges().toList()
 
     private fun setLastCheckedBridges(bridges: List<String>) =
@@ -415,17 +495,6 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         }
     } catch (e: Exception) {
         logw("BridgesCustomRepository saveTorBridges", e)
-        false
-    }
-
-    private fun deleteTorBridges(bridges: List<String>) = try {
-        getCustomBridges().filter {
-            !bridges.contains(it)
-        }.let {
-            fileManager.rewriteFile(configuration.getTorCustomBridgesPath(), it)
-        }
-    } catch (e: Exception) {
-        logw("BridgesCustomRepository deleteTorBridges", e)
         false
     }
 

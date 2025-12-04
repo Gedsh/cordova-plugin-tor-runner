@@ -22,6 +22,7 @@ package pan.alexander.cordova.torrunner.di
 import dagger.Binds
 import dagger.Module
 import pan.alexander.cordova.torrunner.data.addresschecker.AddressCheckerRepositoryImpl
+import pan.alexander.cordova.torrunner.data.configuration.BridgesCleanerManagerImpl
 import pan.alexander.cordova.torrunner.data.configuration.BridgesCustomRepositoryImpl
 import pan.alexander.cordova.torrunner.data.configuration.BridgesDefaultRepositoryImpl
 import pan.alexander.cordova.torrunner.data.configuration.ConfigurationRepositoryImpl
@@ -32,6 +33,7 @@ import pan.alexander.cordova.torrunner.data.network.TorConnectionCheckerReposito
 import pan.alexander.cordova.torrunner.data.preferences.PreferenceRepositoryImpl
 import pan.alexander.cordova.torrunner.data.sni.SniRepositoryImpl
 import pan.alexander.cordova.torrunner.domain.addresschecker.AddressCheckerRepository
+import pan.alexander.cordova.torrunner.domain.configuration.BridgesCleanerManager
 import pan.alexander.cordova.torrunner.domain.configuration.BridgesCustomRepository
 import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
@@ -94,4 +96,9 @@ abstract class RepositoryModule {
     abstract fun bindSniRepository(
         repositoryImpl: SniRepositoryImpl
     ): SniRepository
+
+    @Binds
+    abstract fun bridgesCleanerManager(
+        managerImpl: BridgesCleanerManagerImpl
+    ): BridgesCleanerManager
 }

@@ -19,13 +19,9 @@
 
 package pan.alexander.cordova.torrunner.domain.configuration
 
-interface BridgesCustomRepository {
-    fun startRequestingBridgesFromTorProjectDb()
-    fun stopRequestingBridgesFromTorProjectDb()
-
-    suspend fun getNextBridgesFromCheckingQueue(): List<String>
-    fun getAutoQueueLength(): Int
-    fun reportBridgesReachable(bridges: List<String>)
-    fun reportBridgeAddressUnreachable(address: String)
-    fun deleteBridgeByIp(bridgeIp: String): Boolean
-}
+data class BridgeUnreachableData(
+    val bridgeIp: String,
+    val firstCheckTime: Long,
+    val lastCheckTime: Long,
+    val checkCount: Int
+)
