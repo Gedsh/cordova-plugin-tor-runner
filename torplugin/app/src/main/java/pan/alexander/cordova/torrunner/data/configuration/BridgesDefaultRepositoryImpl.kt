@@ -21,6 +21,7 @@ package pan.alexander.cordova.torrunner.data.configuration
 
 import android.os.Build
 import dalvik.system.ZipPathValidator
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultRepository
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
@@ -32,6 +33,7 @@ import pan.alexander.cordova.torrunner.domain.configuration.RendezvousType
 import pan.alexander.cordova.torrunner.domain.configuration.SnowflakeRepository
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
 import pan.alexander.cordova.torrunner.domain.sni.SniRepository
+import pan.alexander.cordova.torrunner.utils.bridges.BridgeChecker
 import pan.alexander.cordova.torrunner.utils.logger.Logger.loge
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logi
 import pan.alexander.cordova.torrunner.utils.logger.Logger.logw
@@ -43,14 +45,14 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.coroutineContext
 
 @Singleton
 class BridgesDefaultRepositoryImpl @Inject constructor(
     private val configuration: ConfigurationRepository,
     private val snowflakeRepository: SnowflakeRepository,
     private val sniRepository: SniRepository,
-    private val preferences: PreferenceRepository
+    private val preferences: PreferenceRepository,
+    private val bridgeChecker: BridgeChecker,
 ) : BridgesDefaultRepository {
 
     private val failedBridgesAccordingTorLog by lazy { mutableListOf<String>() }
@@ -74,7 +76,6 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         val obfs4Bridges = getDefaultObfs4Bridges().shuffled().chunked(2)
         val webTunnelBridges = getDefaultWebTunnelBridges().shuffled().chunked(2)
         val vanillaBridges = getDefaultVanillaBridges().shuffled()
-            .map { it.removePrefix("vanilla ") }
             .chunked(2)
 
         interleave(webTunnelBridges, vanillaBridges, obfs3Bridges, obfs4Bridges)
@@ -111,9 +112,9 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
             val bridges = queue[index]
             if (checkedBridges.size == bridges.size && checkedBridges.containsAll(bridges)) {
                 var offset = 1
-                while (index + offset < queue.size && coroutineContext.isActive) {
+                while (index + offset < queue.size && currentCoroutineContext().isActive) {
                     nextBridges = queue[index + offset]
-                    if (coroutineContext.isActive
+                    if (currentCoroutineContext().isActive
                         && sniRepository.isWhiteListSuspected()
                         && nextBridges.firstOrNull()?.isWebTunnelBridge() != true
                         && nextBridges.firstOrNull()?.isVanillaBridge() != true) {
@@ -128,7 +129,7 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
                 break
             }
         }
-        if (nextBridges.first().isWebTunnelBridge() && coroutineContext.isActive) {
+        if (nextBridges.first().isWebTunnelBridge() && currentCoroutineContext().isActive) {
             val fakeSni = sniRepository.getFakeSniHosts()
             preferences.setLastSni(fakeSni)
             if (fakeSni.isNotEmpty()) {
@@ -163,32 +164,83 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
     private fun getDefaultBridges(): List<String> =
         File(configuration.getTorDefaultBridgesPath()).readLines()
 
-    private fun getDefaultObfs4Bridges(): List<String> = getDefaultBridges().filter {
-        it.startsWith("obfs4")
+    private fun getDefaultObfs4Bridges(): List<String> {
+        val bridges = getDefaultBridges().filter {
+            it.startsWith("obfs4")
+        }
+        if (bridges.isEmpty()) {
+            return emptyList()
+        }
+        val check = bridgeChecker.getObfs4BridgeChecker(bridges.first())
+        return bridges.filter { check(it) }
     }
 
-    private fun getDefaultObfs3Bridges(): List<String> = getDefaultBridges().filter {
-        it.startsWith("obfs3")
+    private fun getDefaultObfs3Bridges(): List<String> {
+        val bridges = getDefaultBridges().filter {
+            it.startsWith("obfs3")
+        }
+        if (bridges.isEmpty()) {
+            return emptyList()
+        }
+        val check = bridgeChecker.getObfs3BridgeChecker(bridges.first())
+        return bridges.filter { check(it) }
     }
 
-    private fun getDefaultMeekLiteBridges(): List<String> = getDefaultBridges().filter {
-        it.startsWith("meek_lite")
+    private fun getDefaultMeekLiteBridges(): List<String> {
+        val bridges = getDefaultBridges().filter {
+            it.startsWith("meek_lite")
+        }
+        if (bridges.isEmpty()) {
+            return emptyList()
+        }
+        val check = bridgeChecker.getMeekLiteBridgeChecker(bridges.first())
+        return bridges.filter { check(it) }
     }
 
-    override fun getDefaultSnowflakeBridges(): List<String> = getDefaultBridges().filter {
-        it.startsWith("snowflake")
+    override fun getDefaultSnowflakeBridges(): List<String> {
+        val bridges = getDefaultBridges().filter {
+            it.startsWith("snowflake")
+        }
+        if (bridges.isEmpty()) {
+            return emptyList()
+        }
+        val check = bridgeChecker.getSnowFlakeBridgeChecker(bridges.first())
+        return bridges.filter { check(it) }
     }
 
-    private fun getDefaultConjureBridges(): List<String> = getDefaultBridges().filter {
-        it.startsWith("conjure")
+    private fun getDefaultConjureBridges(): List<String> {
+        val bridges = getDefaultBridges().filter {
+            it.startsWith("conjure")
+        }
+        if (bridges.isEmpty()) {
+            return emptyList()
+        }
+        val check = bridgeChecker.getConjureBridgeChecker(bridges.first())
+        return bridges.filter { check(it) }
     }
 
-    private fun getDefaultWebTunnelBridges(): List<String> = getDefaultBridges().filter {
-        it.startsWith("webtunnel")
+    private fun getDefaultWebTunnelBridges(): List<String> {
+        val bridges = getDefaultBridges().filter {
+            it.startsWith("webtunnel")
+        }
+        if (bridges.isEmpty()) {
+            return emptyList()
+        }
+        val check = bridgeChecker.getWebTunnelBridgeChecker(bridges.first())
+        return bridges.filter { check(it) }
     }
 
     private fun getDefaultVanillaBridges(): List<String>  = getDefaultBridges().filter {
-        it.startsWith("vanilla")
+        val bridges = getDefaultBridges().filter {
+            it.startsWith("vanilla")
+        }.map {
+            it.removePrefix("vanilla ")
+        }
+        if (bridges.isEmpty()) {
+            return emptyList()
+        }
+        val check = bridgeChecker.getOtherBridgeChecker(bridges.first())
+        return bridges.filter { check(it) }
     }
 
     override fun updateDefaultBridges() = try {
