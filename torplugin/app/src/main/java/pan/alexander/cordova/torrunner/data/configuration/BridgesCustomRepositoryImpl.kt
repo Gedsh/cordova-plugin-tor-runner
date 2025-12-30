@@ -501,7 +501,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
     private fun getCustomBridges(): List<String> =
         File(configuration.getTorCustomBridgesPath()).readLines()
 
-    private fun getCustomObfs4BridgesIPv4(): List<String> = getCustomBridges().filter {
+    private fun getCustomObfs4BridgesIPv4(): List<String> {
         val bridges = getCustomBridges().filter {
             it.startsWith("obfs4") && !it.isIPv6Bridge()
         }
