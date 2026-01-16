@@ -102,7 +102,7 @@ Developers are expected to be able to build and debug the project independently.
 
 [GNU General Public License version 3](https://www.gnu.org/licenses/gpl-3.0.txt)
 
-Copyright (c) 2025 Garmatin Oleksandr invizible.soft@gmail.com
+Copyright (c) 2025-2026 Garmatin Oleksandr invizible.soft@gmail.com
 
 All rights reserved
 
