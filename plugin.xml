@@ -61,13 +61,7 @@
                 src="torplugin/app/jniLibs/armeabi-v7a/libsnowflake.so"
                 target-dir="jniLibs/armeabi-v7a" />
         <source-file
-                src="torplugin/app/jniLibs/armeabi-v7a/libc++_shared.so"
-                target-dir="jniLibs/armeabi-v7a" />
-        <source-file
                 src="torplugin/app/jniLibs/armeabi-v7a/libconjure.so"
-                target-dir="jniLibs/armeabi-v7a" />
-        <source-file
-                src="torplugin/app/jniLibs/armeabi-v7a/libzmq.so"
                 target-dir="jniLibs/armeabi-v7a" />
         <source-file
                 src="torplugin/app/jniLibs/armeabi-v7a/libreverseproxy.so"
@@ -83,13 +77,7 @@
                 src="torplugin/app/jniLibs/arm64-v8a/libsnowflake.so"
                 target-dir="jniLibs/arm64-v8a" />
         <source-file
-                src="torplugin/app/jniLibs/arm64-v8a/libc++_shared.so"
-                target-dir="jniLibs/arm64-v8a" />
-        <source-file
                 src="torplugin/app/jniLibs/arm64-v8a/libconjure.so"
-                target-dir="jniLibs/arm64-v8a" />
-        <source-file
-                src="torplugin/app/jniLibs/arm64-v8a/libzmq.so"
                 target-dir="jniLibs/arm64-v8a" />
         <source-file
                 src="torplugin/app/jniLibs/arm64-v8a/libreverseproxy.so"
