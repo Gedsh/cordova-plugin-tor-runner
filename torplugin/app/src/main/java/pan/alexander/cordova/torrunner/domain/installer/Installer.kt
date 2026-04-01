@@ -98,7 +98,7 @@ class Installer @Inject constructor(
             logi("Logs folder has been created")
             logi("Configuring Tor is successful")
         } else {
-            coreStatus.torState == CoreState.FAULT
+            coreStatus.torState = CoreState.FAULT
             loge("Configuring Tor is failed")
         }
         return success
