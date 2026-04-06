@@ -26,6 +26,7 @@ import org.json.JSONObject
 import pan.alexander.cordova.torrunner.domain.addresschecker.AddressCheckerRepository
 import pan.alexander.cordova.torrunner.domain.addresschecker.DomainToPort
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
+import pan.alexander.cordova.torrunner.domain.configuration.WebViewProxyManager
 import pan.alexander.cordova.torrunner.domain.core.CoreState
 import pan.alexander.cordova.torrunner.domain.core.CoreStatus
 import pan.alexander.cordova.torrunner.domain.core.TorMode
@@ -52,7 +53,8 @@ class TorPluginManager @Inject constructor(
     private val configuration: ConfigurationRepository,
     private val coreStatus: CoreStatus,
     private val addressChecker: AddressCheckerRepository,
-    private val preferences: PreferenceRepository
+    private val preferences: PreferenceRepository,
+    private val webViewProxyManager: WebViewProxyManager
 ) {
 
     private val startTorLock by lazy { ReentrantLock() }
@@ -81,8 +83,12 @@ class TorPluginManager @Inject constructor(
         startTorLock.withLock {
             if (coreStatus.torState == CoreState.STOPPED) {
                 actionSender.sendIntent(ACTION_START_TOR)
+                if (preferences.getTorMode() == TorMode.ALWAYS) {
+                    enableWebViewProxy()
+                }
             }
             if (coreStatus.torState == CoreState.FAULT) {
+                disableWebViewProxy()
                 callbackContext?.error("Start Tor failed")
             } else {
                 callbackContext?.success()
@@ -105,6 +111,7 @@ class TorPluginManager @Inject constructor(
             if (coreStatus.torState == CoreState.RUNNING || coreStatus.torState == CoreState.FAULT) {
                 logi("Plugin stops Tor")
                 actionSender.sendIntent(ACTION_STOP_TOR)
+                disableWebViewProxy()
             }
             callbackContext?.success()
         }
@@ -164,6 +171,12 @@ class TorPluginManager @Inject constructor(
         } else if (mode == TorMode.NEVER && coreStatus.torState == CoreState.RUNNING) {
             logi("Stop Tor because of mode NEVER")
             stopTor()
+        }
+
+        if (mode == TorMode.ALWAYS) {
+            enableWebViewProxy()
+        } else {
+            disableWebViewProxy()
         }
     }
 
@@ -242,6 +255,14 @@ class TorPluginManager @Inject constructor(
 
     private fun installTorIfRequired(): Boolean =
         installer.installTorIfRequired()
+
+    private fun enableWebViewProxy() {
+        webViewProxyManager.activateProxy()
+    }
+
+    private fun disableWebViewProxy() {
+        webViewProxyManager.clearProxy()
+    }
 
     private fun runOnBackgroundThread(
         cordova: CordovaInterface?,

@@ -88,6 +88,8 @@ dependencies {
     implementation libs.android.shell
     //Preferences
     implementation libs.androidx.preferences
+    //Webkit
+    implementation libs.androidx.webkit
 
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit

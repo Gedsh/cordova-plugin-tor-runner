@@ -28,6 +28,7 @@ import pan.alexander.cordova.torrunner.data.configuration.BridgesDefaultReposito
 import pan.alexander.cordova.torrunner.data.configuration.ConfigurationRepositoryImpl
 import pan.alexander.cordova.torrunner.data.configuration.SnowflakeRepositoryImpl
 import pan.alexander.cordova.torrunner.data.configuration.VanillaRelaysRepositoryImpl
+import pan.alexander.cordova.torrunner.data.configuration.WebViewProxyManagerImpl
 import pan.alexander.cordova.torrunner.data.network.NetworkRepositoryImpl
 import pan.alexander.cordova.torrunner.data.network.TorConnectionCheckerRepositoryImpl
 import pan.alexander.cordova.torrunner.data.preferences.PreferenceRepositoryImpl
@@ -39,6 +40,7 @@ import pan.alexander.cordova.torrunner.domain.configuration.BridgesDefaultReposi
 import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository
 import pan.alexander.cordova.torrunner.domain.configuration.SnowflakeRepository
 import pan.alexander.cordova.torrunner.domain.configuration.VanillaRelaysRepository
+import pan.alexander.cordova.torrunner.domain.configuration.WebViewProxyManager
 import pan.alexander.cordova.torrunner.domain.network.NetworkRepository
 import pan.alexander.cordova.torrunner.domain.network.TorConnectionCheckerRepository
 import pan.alexander.cordova.torrunner.domain.preferences.PreferenceRepository
@@ -98,7 +100,12 @@ abstract class RepositoryModule {
     ): SniRepository
 
     @Binds
-    abstract fun bridgesCleanerManager(
+    abstract fun bindBridgesCleanerManager(
         managerImpl: BridgesCleanerManagerImpl
     ): BridgesCleanerManager
+
+    @Binds
+    abstract fun bindWebViewProxyManager(
+        managerImpl: WebViewProxyManagerImpl
+    ): WebViewProxyManager
 }

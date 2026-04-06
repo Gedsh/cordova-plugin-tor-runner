@@ -30,6 +30,7 @@
     <preference name="LIFECYCLE_PROCESS_VERSION" default="2.9.1" />
     <preference name="ANDROID_SHELL_VERSION" default="1.0.1" />
     <preference name="ANDROID_PREFERENCES_VERSION" default="1.2.1" />
+    <preference name="ANDROIDX_WEBKIT_VERSION" default="1.15.0" />
 
     <platform name="android">
 
@@ -122,6 +123,9 @@
                 target-dir="java/pan/alexander/cordova/torrunner/framework" />
         <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/framework/NetworkObserver.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/framework" />
+        <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/framework/WebViewProxy.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/framework" />
 
         <source-file
@@ -220,6 +224,9 @@
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/configuration/VanillaRelaysRepository.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/configuration" />
         <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/configuration/WebViewProxyManager.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/domain/configuration" />
+        <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/domain/core/CommandResult.java"
                 target-dir="java/pan/alexander/cordova/torrunner/domain/core" />
         <source-file
@@ -309,6 +316,9 @@
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/configuration/VanillaRelaysRepositoryImpl.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/data/configuration" />
         <source-file
+                src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/configuration/WebViewProxyManagerImpl.kt"
+                target-dir="java/pan/alexander/cordova/torrunner/data/configuration" />
+        <source-file
                 src="torplugin/app/src/main/java/pan/alexander/cordova/torrunner/data/network/NetworkRepositoryImpl.kt"
                 target-dir="java/pan/alexander/cordova/torrunner/data/network" />
         <source-file
@@ -326,6 +336,7 @@
         <framework src="androidx.lifecycle:lifecycle-process:$LIFECYCLE_PROCESS_VERSION" />
         <framework src="com.jrummyapps:android-shell:$ANDROID_SHELL_VERSION" />
         <framework src="androidx.preference:preference-ktx:$ANDROID_PREFERENCES_VERSION" />
+        <framework src="androidx.webkit:webkit:$ANDROIDX_WEBKIT_VERSION" />
 
         <framework src="torplugin/gradle/custom-build.gradle" custom="true" type="gradleReference" />
 
