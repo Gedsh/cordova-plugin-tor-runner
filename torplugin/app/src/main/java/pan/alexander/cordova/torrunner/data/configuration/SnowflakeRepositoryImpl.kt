@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with Cordova Plugin Tor Runner.  If not, see <http://www.gnu.org/licenses/>.
 
-    Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
+    Copyright 2025-2026 by Garmatin Oleksandr invizible.soft@gmail.com
  */
 
 package pan.alexander.cordova.torrunner.data.configuration
@@ -35,8 +35,8 @@ class SnowflakeRepositoryImpl @Inject constructor(
 
         for (base in getBases()) {
             val bridgeWithoutIce = when(rendezvousType) {
-                RendezvousType.AMP_CACHE, RendezvousType.CDN77 -> "$base url=${getUrl(rendezvousType)} fronts=${getFronts(rendezvousType).joinToString(",")} utls-imitate=${getUtlsClientID()}"
-                RendezvousType.AMAZON_SQS -> "$base sqsqueue=${getUrl(rendezvousType)} sqscreds=${getFronts(rendezvousType).joinToString("")} utls-imitate=${getUtlsClientID()}"
+                RendezvousType.AMP_CACHE, RendezvousType.CDN77 -> "$base url=${getUrl(rendezvousType)} fronts=${getFronts(rendezvousType).joinToString(",")} utls-imitate=${getUtlsClientID()} covertdtls-config=${getCovertDtls()}"
+                RendezvousType.AMAZON_SQS -> "$base sqsqueue=${getUrl(rendezvousType)} sqscreds=${getFronts(rendezvousType).joinToString("")} utls-imitate=${getUtlsClientID()} covertdtls-config=${getCovertDtls()}"
             }
 
             val stuns = getSnowflakeStunServers().map {
@@ -87,4 +87,6 @@ class SnowflakeRepositoryImpl @Inject constructor(
     )
 
     override fun getUtlsClientID(): String = "hellorandomizedalpn"
+
+    override fun getCovertDtls(): String = "randomizemimic"
 }

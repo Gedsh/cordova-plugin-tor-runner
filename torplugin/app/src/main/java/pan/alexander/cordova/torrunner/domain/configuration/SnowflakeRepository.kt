@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with Cordova Plugin Tor Runner.  If not, see <http://www.gnu.org/licenses/>.
 
-    Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
+    Copyright 2025-2026 by Garmatin Oleksandr invizible.soft@gmail.com
  */
 
 package pan.alexander.cordova.torrunner.domain.configuration
@@ -26,4 +26,5 @@ interface SnowflakeRepository {
     fun getFronts(rendezvousType: RendezvousType): List<String>
     fun getSnowflakeStunServers(): List<String>
     fun getUtlsClientID(): String
+    fun getCovertDtls(): String
 }
