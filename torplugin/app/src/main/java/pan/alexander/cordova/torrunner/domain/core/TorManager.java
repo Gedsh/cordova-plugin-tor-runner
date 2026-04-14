@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with Cordova Plugin Tor Runner.  If not, see <http://www.gnu.org/licenses/>.
 
-    Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
+    Copyright 2025-2026 by Garmatin Oleksandr invizible.soft@gmail.com
  */
 
 package pan.alexander.cordova.torrunner.domain.core;
@@ -266,6 +266,7 @@ public class TorManager implements OnTorConnectionCheckedListener {
 
                 if (coreStatus.getTorState() != RUNNING) {
                     lock.unlock();
+                    configuration.deleteBridgesFromStateFile(configuration.getTorStateFilePath());
                     startTor();
                     checkInternetConnection();
                 }

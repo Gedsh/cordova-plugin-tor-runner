@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with Cordova Plugin Tor Runner.  If not, see <http://www.gnu.org/licenses/>.
 
-    Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
+    Copyright 2025-2026 by Garmatin Oleksandr invizible.soft@gmail.com
  */
 
 package pan.alexander.cordova.torrunner.domain.configuration
@@ -43,8 +43,10 @@ interface ConfigurationRepository {
     fun getTorGeoipPath(): String
     fun getTorGeoip6Path(): String
     fun getTorPidPath(): String
+    fun getTorStateFilePath(): String
     fun getTorCheckerPidPath(): String
     fun getTorCheckerDataPath(): String
+    fun getTorCheckerStateFilePath(): String
     fun getTorDefaultSocksPort(): Int
     fun getTorDefaultHttpPort(): Int
     fun getTorAssetStream(): InputStream
@@ -62,6 +64,7 @@ interface ConfigurationRepository {
     fun setBridges(bridges: List<String>)
     fun getSnowflakeBridgeType(): RendezvousType
     fun setSnowflakeBridgeType(type: RendezvousType)
+    fun deleteBridgesFromStateFile(path: String)
 
     //Reverse Proxy
     fun getReverseProxyPath(): String

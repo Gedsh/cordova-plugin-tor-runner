@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with Cordova Plugin Tor Runner.  If not, see <http://www.gnu.org/licenses/>.
 
-    Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
+    Copyright 2025-2026 by Garmatin Oleksandr invizible.soft@gmail.com
  */
 
 package pan.alexander.cordova.torrunner.framework
@@ -52,8 +52,10 @@ class ConfigurationManager @Inject constructor(
     val torGeoipPath by lazy { "$torConfigurationDir/geoip" }
     val torGeoip6Path by lazy { "$torConfigurationDir/geoip6" }
     val torPidPath by lazy { "$appDataDir/tor.pid" }
+    val torStateFilePath by lazy { "$appDataDir/tor_data/state" }
     val torCheckerPidPath by lazy { "$appDataDir/tor_checker.pid" }
     val torCheckerDataDir by lazy { "$appDataDir/tor_checker_data" }
+    val torCheckerStateFilePath by lazy { "$appDataDir/tor_checker_data/state" }
 
     fun torAssetsStream() = context.assets.open("tor.mp3")
 

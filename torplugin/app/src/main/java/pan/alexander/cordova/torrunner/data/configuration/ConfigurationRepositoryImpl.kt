@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with Cordova Plugin Tor Runner.  If not, see <http://www.gnu.org/licenses/>.
 
-    Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
+    Copyright 2025-2026 by Garmatin Oleksandr invizible.soft@gmail.com
  */
 
 package pan.alexander.cordova.torrunner.data.configuration
@@ -104,10 +104,12 @@ class ConfigurationRepositoryImpl @Inject constructor(
     override fun getTorGeoip6Path() = configurationManager.torGeoip6Path
 
     override fun getTorPidPath() = configurationManager.torPidPath
+    override fun getTorStateFilePath() = configurationManager.torStateFilePath
 
     override fun getTorCheckerPidPath() = configurationManager.torCheckerPidPath
 
     override fun getTorCheckerDataPath() = configurationManager.torCheckerDataDir
+    override fun getTorCheckerStateFilePath() = configurationManager.torCheckerStateFilePath
 
     override fun getTorDefaultSocksPort() = configurationManager.torDefaultSocksPort
 
@@ -284,6 +286,51 @@ class ConfigurationRepositoryImpl @Inject constructor(
         loge("ConfigurationRepository setSnowflakeBridgeType $type", e)
     }
 
+    override fun deleteBridgesFromStateFile(path: String) {
+        try {
+            val file = File(path)
+
+            if (!file.exists() || !file.isFile) {
+                return
+            }
+
+            var containedBridges = false
+            val lines = mutableListOf<String>()
+
+            file.bufferedReader().use { reader ->
+                reader.forEachLine { line ->
+                    if (line.startsWith("Guard in=bridges ")) {
+                        containedBridges = true
+                    } else {
+                        lines.add(line)
+                    }
+                }
+            }
+
+            if (containedBridges) {
+                val parentDir = file.parentFile ?: return
+                val tempFile = File(parentDir, "${file.name}.tmp")
+
+                tempFile.bufferedWriter().use { writer ->
+                    for (line in lines) {
+                        writer.write(line)
+                        writer.newLine()
+                    }
+                }
+
+                if (!tempFile.renameTo(file)) {
+                    file.delete()
+                    if (!tempFile.renameTo(file)) {
+                        loge("ConfigurationRepository deleteBridgesFromStateFile failed to replace file: ${file.absolutePath}")
+                    }
+                } else {
+                    tempFile.delete()
+                }
+            }
+        } catch (e: Exception) {
+            loge("ConfigurationRepository deleteBridgesFromStateFile failed to replace file", e)
+        }
+    }
     override fun getReverseProxyPath() = configurationManager.reverseProxyPath
 
     override fun getReverseProxyPidPath() = configurationManager.reverseProxyPidPath

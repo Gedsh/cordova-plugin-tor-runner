@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with Cordova Plugin Tor Runner.  If not, see <http://www.gnu.org/licenses/>.
 
-    Copyright 2025 by Garmatin Oleksandr invizible.soft@gmail.com
+    Copyright 2025-2026 by Garmatin Oleksandr invizible.soft@gmail.com
  */
 
 package pan.alexander.cordova.torrunner.domain.core;
@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import pan.alexander.cordova.torrunner.domain.configuration.ConfigurationRepository;
 import pan.alexander.cordova.torrunner.utils.thread.ThreadFinder;
 
 @Singleton
@@ -36,16 +37,19 @@ public class TorCheckerManager {
     private final StarterHelper starterHelper;
     private final Killer killer;
     private final ThreadFinder threadFinder;
+    private final ConfigurationRepository configuration;
 
     @Inject
     public TorCheckerManager(
             StarterHelper starterHelper,
             Killer killer,
-            ThreadFinder threadFinder
+            ThreadFinder threadFinder,
+            ConfigurationRepository configuration
     ) {
         this.starterHelper = starterHelper;
         this.killer = killer;
         this.threadFinder = threadFinder;
+        this.configuration = configuration;
     }
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -78,6 +82,8 @@ public class TorCheckerManager {
 
                     makeDelay(5);
                 }
+
+                configuration.deleteBridgesFromStateFile(configuration.getTorCheckerStateFilePath());
 
                 Thread torThread = new Thread(starterHelper.getTorCheckerStarterRunnable(bridges));
                 torThread.setName("TorCheckerThread");
