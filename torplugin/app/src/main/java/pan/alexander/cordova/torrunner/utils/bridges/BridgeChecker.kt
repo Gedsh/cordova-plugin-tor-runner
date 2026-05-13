@@ -34,12 +34,18 @@ class BridgeChecker @Inject constructor() {
     private val urlRegex by lazy { Regex("url=$URL_REGEX") }
     private val frontsRegex by lazy { Regex("fronts=($HOST_NAME_REGEX,)*$HOST_NAME_REGEX") }
     private val frontRegex by lazy { Regex("front=$HOST_NAME_REGEX") }
-    private val conjureAmpCacheRegex by lazy { Regex("ampcache=$URL_REGEX") }
+    private val ampCacheRegex by lazy { Regex("ampcache=$URL_REGEX") }
     private val conjureTransportRegex by lazy { Regex("transport=(min|prefix|dtls)") }
     private val conjureRegistrarRegex by lazy { Regex("registrar=(dns|ampcache)") }
     private val webTunnelServerNameRegex by lazy { Regex("servername=$HOST_NAME_REGEX") }
     private val webTunnelAddrRegex by lazy { Regex("addr=($IPv4_REGEX:\\d+)|$IPv6_REGEX:\\d+") }
     private val webTunnelVersionRegex by lazy { Regex("ver=[0-9.]+") }
+    private val snowflakeIceRegex by lazy { Regex("ice=(stun:$HOST_NAME_REGEX:\\d+,?)+") }
+    private val snowflakeCovertDtlsRegex by lazy { Regex("covertdtls-config=\\w+") }
+    private val snowflakeSqsQueueRegex by lazy { Regex("sqsqueue=$URL_REGEX") }
+    private val snowflakeSqsCredsRegex by lazy { Regex("sqscreds=[-A-Za-z0-9+/=]+") }
+    private val snowflakeFingerprintRegex by lazy { Regex("fingerprint=\\w+") }
+
 
     fun getObfs4BridgeChecker(input: String): (bridge: String) -> Boolean {
         val bridgeBase = input.getBridgeBase()
@@ -68,10 +74,20 @@ class BridgeChecker @Inject constructor() {
 
     fun getSnowFlakeBridgeChecker(input: String): (bridge: String) -> Boolean {
         val bridgeBase = input.getBridgeBase()
-        val pattern =
-            Pattern.compile("^snowflake +$bridgeBase(?: +fingerprint=\\w+)?(?: +url=https://[\\w.+/-]+)?(?: +ampcache=https://[\\w.+/-]+)?(?: +front(s)?=[\\w./-]+)?(?: +ice=(?:stun:[\\w./-]+?:\\d+,?)+)?(?: +utls-imitate=\\w+)?(?: +sqsqueue=https://[\\w.+/-]+)?(?: +sqscreds=[-A-Za-z0-9+/=]+)?(?: +ice=(?:stun:[\\w./-]+?:\\d+,?)+)?")
-        return { bridge -> pattern.matcher(bridge).matches() }
+        val pattern = Pattern.compile("^snowflake +$bridgeBase(?: +.+)?")
+        return { bridge ->
+            pattern.matcher(bridge).matches()
+                    && (!bridge.contains("fingerprint=") || bridge.contains(snowflakeFingerprintRegex))
+                    && (!bridge.contains("url=") || bridge.contains(urlRegex))
+                    && (!bridge.contains("ampcache=") || bridge.contains(ampCacheRegex))
+                    && (!bridge.contains("fronts=") || bridge.contains(frontsRegex))
+                    && (!bridge.contains("ice=") || bridge.contains(snowflakeIceRegex))
+                    && (!bridge.contains("covertdtls-config=") || bridge.contains(snowflakeCovertDtlsRegex))
+                    && (!bridge.contains("sqsqueue=") || bridge.contains(snowflakeSqsQueueRegex))
+                    && (!bridge.contains("sqscreds=") || bridge.contains(snowflakeSqsCredsRegex))
+        }
     }
+
 
     fun getConjureBridgeChecker(input: String): (bridge: String) -> Boolean {
         val bridgeBase = input.getBridgeBase()
@@ -83,9 +99,7 @@ class BridgeChecker @Inject constructor() {
                     && (!bridge.contains("fronts=") || bridge.contains(frontsRegex))
                     && (!bridge.contains("transport=") || bridge.contains(conjureTransportRegex))
                     && (!bridge.contains("registrar=") || bridge.contains(conjureRegistrarRegex))
-                    && (!bridge.contains("registrar=ampcache") || bridge.contains(
-                conjureAmpCacheRegex
-            ))
+                    && (!bridge.contains("registrar=ampcache") || bridge.contains(ampCacheRegex))
         }
     }
 
