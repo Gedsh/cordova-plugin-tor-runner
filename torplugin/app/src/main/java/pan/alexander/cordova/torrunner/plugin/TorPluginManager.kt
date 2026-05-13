@@ -74,9 +74,6 @@ class TorPluginManager @Inject constructor(
     ) = runOnBackgroundThread(cordova, callbackContext) {
         logi("Plugin starts Tor")
         startTor(callbackContext)
-    }?.let {
-        loge("TorManager startTor", it, true)
-        throw it
     }
 
     private fun startTor(callbackContext: CallbackContext? = null) {
@@ -101,9 +98,6 @@ class TorPluginManager @Inject constructor(
         callbackContext: CallbackContext?
     ) = runOnBackgroundThread(cordova, callbackContext) {
         stopTor(callbackContext)
-    }?.let {
-        loge("TorManager stopTor", it, true)
-        throw it
     }
 
     private fun stopTor(callbackContext: CallbackContext? = null) {
@@ -130,9 +124,6 @@ class TorPluginManager @Inject constructor(
                 cordova?.activity?.resources?.configuration?.locales?.toLanguageTags() ?: ""
             )
         }
-    }?.let {
-        loge("TorManager getConfiguration", it, true)
-        throw it
     }
 
     fun setConfiguration(
@@ -159,9 +150,6 @@ class TorPluginManager @Inject constructor(
                 callbackContext?.error("Unable to update undefined configuration")
             }
         }
-    }?.let {
-        loge("TorManager setConfiguration", it, true)
-        throw it
     }
 
     private fun manageTor(mode: TorMode) {
@@ -231,9 +219,6 @@ class TorPluginManager @Inject constructor(
             }
             callbackContext?.success(result)
         }
-    }?.let {
-        loge("TorManager checkAddress", it, true)
-        throw it
     }
 
     private fun updatePluginConfiguration(callback: CallbackContext?, configuration: JSONObject) {
@@ -268,17 +253,23 @@ class TorPluginManager @Inject constructor(
         cordova: CordovaInterface?,
         callbackContext: CallbackContext?,
         action: () -> Unit
-    ): Exception? {
-        var exception: Exception? = null
-        cordova?.threadPool?.execute {
+    ) {
+        val threadPool = cordova?.threadPool
+        if (threadPool == null) {
+            val error = "Cordova thread pool is unavailable"
+            loge("TorPluginManager runOnBackgroundThread $error")
+            callbackContext?.error(error)
+            return
+        }
+
+        threadPool.execute {
             try {
                 action()
             } catch (e: Exception) {
-                exception = e
                 callbackContext?.error(e.toString())
+                loge("TorPluginManager runOnBackgroundThread", e, true)
             }
         }
-        return exception
     }
 
     private fun updateLocales(locales: String) {
