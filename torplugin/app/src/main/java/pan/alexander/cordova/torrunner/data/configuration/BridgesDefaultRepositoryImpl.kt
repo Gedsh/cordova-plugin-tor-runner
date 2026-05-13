@@ -230,7 +230,7 @@ class BridgesDefaultRepositoryImpl @Inject constructor(
         return bridges.filter { check(it) }
     }
 
-    private fun getDefaultVanillaBridges(): List<String>  = getDefaultBridges().filter {
+    private fun getDefaultVanillaBridges(): List<String> {
         val bridges = getDefaultBridges().filter {
             it.startsWith("vanilla")
         }.map {
