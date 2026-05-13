@@ -45,8 +45,8 @@ class PreferenceRepositoryImpl @Inject constructor(
     private val preferences: SharedPreferences,
     private val bridgesCustomRepository: dagger.Lazy<BridgesCustomRepository>
 ) : PreferenceRepository {
-
-    private val firstNumberRegex by lazy { Regex("^\\d.+") }
+    private val ipv4BridgeAddressRegex by lazy { Regex("^(\\d{1,3}\\.){3}\\d{1,3}:\\d+$") }
+    private val ipv6BridgeAddressRegex by lazy { Regex("^\\[[0-9a-fA-F:]+]:\\d+$") }
 
     override fun getTorMode(): TorMode =
         TorMode.valueOf(
@@ -122,17 +122,17 @@ class PreferenceRepositoryImpl @Inject constructor(
     }
 
     override fun addUnreachableBridgeRecord(bridge: String) = try {
-        val bridgeIp = extractBridgeIpAddress(bridge)
+        val bridgeAddress = extractBridgeAddress(bridge)
         val unreachableBridges = (preferences.getStringSet(
             UNREACHABLE_BRIDGES,
             emptySet()
         ) ?: emptySet())
         val bridgeUnreachableData = unreachableBridges.firstOrNull {
-            it.startsWith(bridgeIp)
+            it.startsWith(bridgeAddress)
         }?.split(";")
             ?.let {
                 BridgeUnreachableData(
-                    bridgeIp,
+                    bridgeAddress,
                     it[1].toLong(),
                     it[2].toLong(),
                     it[3].toInt()
@@ -141,27 +141,27 @@ class PreferenceRepositoryImpl @Inject constructor(
 
         val currentTime = System.currentTimeMillis()
 
-        if (bridgeIp.isNotEmpty() && bridgeUnreachableData != null
+        if (bridgeAddress.isNotEmpty() && bridgeUnreachableData != null
             && bridgeUnreachableData.checkCount > BRIDGE_UNREACHABLE_COUNT_TO_DELETE
             && currentTime - bridgeUnreachableData.lastCheckTime > BRIDGE_UNREACHABLE_COOLDOWN_TIME_HOURS * 1000 * 60 * 60
             && currentTime - bridgeUnreachableData.firstCheckTime > BRIDGE_UNREACHABLE_TIME_TO_DELETE_DAYS * 1000 * 60 * 60 * 24
         ) {
-            bridgesCustomRepository.get().deleteBridgeByIp(bridgeIp)
+            bridgesCustomRepository.get().deleteBridgeByAddress(bridgeAddress)
             removeUnreachableBridgeRecord(bridge)
-        } else if (bridgeIp.isNotEmpty() && bridgeUnreachableData != null) {
+        } else if (bridgeAddress.isNotEmpty() && bridgeUnreachableData != null) {
             if (currentTime - bridgeUnreachableData.lastCheckTime > BRIDGE_UNREACHABLE_COOLDOWN_TIME_HOURS * 1000 * 60 * 60) {
                 val updatedUnreachableBridges = unreachableBridges.filter {
-                    !it.startsWith(bridgeIp)
+                    !it.startsWith(bridgeAddress)
                 }.toMutableSet().apply {
-                    add("$bridgeIp;${bridgeUnreachableData.firstCheckTime};$currentTime;${bridgeUnreachableData.checkCount + 1}")
+                    add("$bridgeAddress;${bridgeUnreachableData.firstCheckTime};$currentTime;${bridgeUnreachableData.checkCount + 1}")
                 }
                 preferences.edit {
                     putStringSet(UNREACHABLE_BRIDGES, updatedUnreachableBridges)
                 }
             }
-        } else if (bridgeIp.isNotEmpty()) {
+        } else if (bridgeAddress.isNotEmpty()) {
             val updatedUnreachableBridges = unreachableBridges.toMutableSet().apply {
-                add("$bridgeIp;$currentTime;$currentTime;1")
+                add("$bridgeAddress;$currentTime;$currentTime;1")
             }
             preferences.edit {
                 putStringSet(UNREACHABLE_BRIDGES, updatedUnreachableBridges)
@@ -174,13 +174,13 @@ class PreferenceRepositoryImpl @Inject constructor(
     }
 
     override fun removeUnreachableBridgeRecord(bridge: String) = try {
-        val bridgeIp = extractBridgeIpAddress(bridge)
-        if (bridgeIp.isNotEmpty()) {
+        val bridgeAddress = extractBridgeAddress(bridge)
+        if (bridgeAddress.isNotEmpty()) {
             val unreachableBridges = preferences.getStringSet(
                 UNREACHABLE_BRIDGES,
                 emptySet()
             )?.filter {
-                !it.startsWith(bridgeIp)
+                !it.startsWith(bridgeAddress)
             }?.toSet() ?: emptySet()
             preferences.edit {
                 putStringSet(UNREACHABLE_BRIDGES, unreachableBridges)
@@ -194,13 +194,18 @@ class PreferenceRepositoryImpl @Inject constructor(
         false
     }
 
-    private fun extractBridgeIpAddress(bridge: String): String =
-        if (bridge.count { it == " "[0] } > 0 && bridge.matches(firstNumberRegex)) {
-            bridge.substringBefore(" ")
-        } else if (bridge.count { it == " "[0] } > 1) {
-            bridge.substring(bridge.indexOf(" "), bridge.indexOf(" ", bridge.indexOf(" ") + 1))
-        } else {
-            ""
+    private fun extractBridgeAddress(bridge: String): String {
+        val parts = bridge.trim().split(Regex("\\s+"))
+        return when {
+            parts.isEmpty() -> ""
+            parts[0].isBridgeAddress() -> parts[0]
+            parts.size > 1 && parts[1].isBridgeAddress() -> parts[1]
+            else -> ""
         }
+    }
+
+    private fun String.isBridgeAddress() =
+        matches(ipv4BridgeAddressRegex) || matches(ipv6BridgeAddressRegex)
+
 
 }

@@ -20,7 +20,7 @@
 package pan.alexander.cordova.torrunner.domain.configuration
 
 data class BridgeUnreachableData(
-    val bridgeIp: String,
+    val bridgeAddress: String,
     val firstCheckTime: Long,
     val lastCheckTime: Long,
     val checkCount: Int

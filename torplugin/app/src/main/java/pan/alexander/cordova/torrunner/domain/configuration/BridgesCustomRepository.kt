@@ -27,5 +27,5 @@ interface BridgesCustomRepository {
     fun getAutoQueueLength(): Int
     fun reportBridgesReachable(bridges: List<String>)
     fun reportBridgeAddressUnreachable(address: String)
-    fun deleteBridgeByIp(bridgeIp: String): Boolean
+    fun deleteBridgeByAddress(bridgeAddress: String): Boolean
 }
