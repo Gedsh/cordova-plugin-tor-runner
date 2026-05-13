@@ -212,7 +212,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         transport = BridgeType.WEBTUNNEL,
         ipv6 = false,
         useTor = true
-    ).also { bridges ->
+    ).let { bridges ->
         bridges.filter { bridge ->
             currentCoroutineContext().ensureActive()
             isWebTunnelBridgeReachable(bridge)
@@ -257,7 +257,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         transport = BridgeType.VANILLA,
         ipv6 = false,
         useTor = true
-    ).also { bridges ->
+    ).let { bridges ->
         bridges.filter { bridge ->
             currentCoroutineContext().ensureActive()
             isVanillaBridgeIPv4Reachable(bridge)
@@ -291,7 +291,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         transport = BridgeType.OBFS4,
         ipv6 = false,
         useTor = true
-    ).also { bridges ->
+    ).let { bridges ->
         bridges.filter { bridge ->
             currentCoroutineContext().ensureActive()
             isObfs4BridgeIPv4Reachable(bridge)
@@ -437,15 +437,15 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         false
     }
 
-    override fun deleteBridgeByIp(bridgeIp: String) = try {
+    override fun deleteBridgeByAddress(bridgeAddress: String) = try {
         getCustomBridges().filter {
-            !it.contains(bridgeIp)
+            !it.contains(bridgeAddress)
         }.let {
             fileManager.rewriteFile(configuration.getTorCustomBridgesPath(), it)
         }
         true
     } catch (e: Exception) {
-        logw("BridgesCustomRepository deleteBridgeByIp", e)
+        logw("BridgesCustomRepository deleteBridgeByAddress", e)
         false
     }
 
