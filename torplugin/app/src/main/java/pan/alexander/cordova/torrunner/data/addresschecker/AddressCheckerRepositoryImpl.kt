@@ -57,23 +57,18 @@ class AddressCheckerRepositoryImpl @Inject constructor(
             || previousResult.reachable && currentTime - previousResult.time > REACHABLE_ADDRESS_CHECK_INTERVAL_MINUTES
             || !previousResult.reachable && currentTime - previousResult.time > UNREACHABLE_ADDRESS_CHECK_INTERVAL_MINUTES
         ) {
-
-            reachable = if (preferences.getTorMode() == TorMode.NEVER) {
-                true
-            } else if (preferences.getTorMode() == TorMode.AUTO && networkChecker.isVpnActive()) {
+            reachable = if (networkChecker.isVpnActive()) {
                 httpAddressChecker.isHttpsAddressReachable(
                     address.domain,
                     address.port,
                     8000
                 )
-            } else if (preferences.getTorMode() == TorMode.AUTO) {
+            } else {
                 httpAddressChecker.isHttpsAddressReachable(
                     address.domain,
                     address.port,
                     3000
                 )
-            } else {
-                false
             }
             checkResults[address] = TimeToReachable(currentTime, reachable)
         } else {

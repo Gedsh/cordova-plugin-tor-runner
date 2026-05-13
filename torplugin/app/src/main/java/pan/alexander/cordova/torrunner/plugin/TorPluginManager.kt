@@ -198,7 +198,13 @@ class TorPluginManager @Inject constructor(
                         || it.domain.matches(ipv6Regex)
             }
         val redirect = domainToPort?.let {
-            !addressChecker.isAddressReachable(domainToPort)
+            if (preferences.getTorMode() == TorMode.NEVER) {
+                false
+            } else if (preferences.getTorMode() == TorMode.AUTO) {
+                !addressChecker.isAddressReachable(domainToPort)
+            } else {
+                true
+            }
         } ?: false
 
         if (redirect && coreStatus.torState == CoreState.STOPPED) {
