@@ -409,7 +409,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
         return nextBridges
     }
 
-    override fun getAutoQueueLength(): Int = checkBridgesQueue.size
+    override fun getCheckQueueLength(): Int = checkBridgesQueue.size
 
     override fun reportBridgesReachable(bridges: List<String>) {
         bridges.forEach {
@@ -427,7 +427,7 @@ class BridgesCustomRepositoryImpl @Inject constructor(
 
     private fun deleteBridge(bridge: String) = try {
         getCustomBridges().filter {
-            bridge != it
+            it != bridge && it != "vanilla $bridge"
         }.let {
             fileManager.rewriteFile(configuration.getTorCustomBridgesPath(), it)
         }

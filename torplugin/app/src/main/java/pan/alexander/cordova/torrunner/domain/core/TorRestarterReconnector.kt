@@ -442,12 +442,12 @@ class TorRestarterReconnector @Inject constructor(
 
     private fun getDelayForRotatingBridges() =
         1000L * 60 * MIN_DELAY_ROTATE_BRIDGE_MINUTES * ceil(
-            rotateBridgesCounter / (bridgesDefaultRepository.getAutoQueueLength()
-                .toDouble() + bridgesCustomRepository.getAutoQueueLength().toDouble())
+            rotateBridgesCounter / bridgesDefaultRepository.getAutoQueueLength().toDouble()
         ).toLong()
 
     private fun getDelayForCheckingBridges() =
         1000L * 60 * MIN_DELAY_CHECK_BRIDGE_MINUTES * ceil(
-            checkBridgesCounter / bridgesDefaultRepository.getCheckQueueLength().toDouble()
+            checkBridgesCounter / (bridgesDefaultRepository.getCheckQueueLength()
+                .toDouble() + bridgesCustomRepository.getCheckQueueLength().toDouble())
         ).toLong()
 }

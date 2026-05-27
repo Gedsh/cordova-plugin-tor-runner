@@ -24,7 +24,7 @@ interface BridgesCustomRepository {
     fun stopRequestingBridgesFromTorProjectDb()
 
     suspend fun getNextBridgesFromCheckingQueue(): List<String>
-    fun getAutoQueueLength(): Int
+    fun getCheckQueueLength(): Int
     fun reportBridgesReachable(bridges: List<String>)
     fun reportBridgeAddressUnreachable(address: String)
     fun deleteBridgeByAddress(bridgeAddress: String): Boolean
