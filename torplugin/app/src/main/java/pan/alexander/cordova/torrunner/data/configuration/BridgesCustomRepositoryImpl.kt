@@ -104,10 +104,10 @@ class BridgesCustomRepositoryImpl @Inject constructor(
     }
 
     private val webTunnelBridgePatternIPv4 by lazy {
-        Pattern.compile("webtunnel +$ipv4BridgeBase +url=http(s)?://[\\w./-]+")
+        Pattern.compile("webtunnel +$ipv4BridgeBase +url=$URL_REGEX")
     }
     private val webTunnelBridgePatternIPv6 by lazy {
-        Pattern.compile("webtunnel +$ipv6BridgeBase +url=http(s)?://[\\w./-]+")
+        Pattern.compile("webtunnel +$ipv6BridgeBase +url=$URL_REGEX")
     }
 
     private val numberRegex by lazy { Regex(NUMBER_REGEX) }
