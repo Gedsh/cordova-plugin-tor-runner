@@ -1,6 +1,6 @@
 # Cordova plugin - Tor runner
 
-*Android Cordova plugin for running Tor. Provides local SOCKS5 and HTTP proxies for secure and anonymous traffic tunneling*
+*Android Cordova (Capacitor) plugin for running Tor. Provides local SOCKS5 and HTTP proxies for secure and anonymous traffic tunneling*
 
 Plugin embeds a fully functional Tor runtime into an Android application built with the Cordova framework. It allows applications to route traffic through the Tor network using local proxy interfaces and supports flexible traffic routing strategies, including selective tunneling for censored or blocked resources.
 
@@ -88,7 +88,7 @@ Developers are expected to be able to build and debug the project independently.
 
 **BTC**: 1GfJwiHG6xKCQCpHeW6fELzFfgsvcSxVUR
 
-**LTC**: MUSAXkcAvnN1Ytauzeo9bwjVjarUdDHGgk
+**LTC**: MGgumSzrC91E8DMMSnH4nRBMepeMjQtxGe
 
 **BCH**: qzl4w4ahh7na2z23056qawwdyuclkgty5gc4q8tw88
 
