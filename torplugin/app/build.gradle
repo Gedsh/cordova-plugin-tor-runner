@@ -9,12 +9,12 @@ android {
     namespace 'pan.alexander.torplugin'
     flavorDimensions = ["version"]
 
-    compileSdk 35
+    compileSdk 37
 
     defaultConfig {
         applicationId "pan.alexander.torplugin"
         minSdk 24
-        targetSdk 35
+        targetSdk 36
         versionCode 1
         versionName "0.0.1"
 
