@@ -43,8 +43,8 @@ private const val DELAY_BEFORE_RESTART_TOR_SEC = 10
 private const val DELAY_BEFORE_FULL_RESTART_TOR_SEC = 60
 private const val MIN_DELAY_ROTATE_BRIDGE_MINUTES = 3
 private const val EXTRA_DELAY_ROTATE_BRIDGE_MINUTES = 1
-private const val MIN_DELAY_CHECK_BRIDGE_MINUTES = 1
-private const val EXTRA_DELAY_CHECK_BRIDGE_MINUTES = 1
+private const val MIN_DELAY_CHECK_BRIDGE_MINUTES = 2
+private const val EXTRA_DELAY_CHECK_BRIDGE_MINUTES = 2
 
 @ExperimentalCoroutinesApi
 class TorRestarterReconnector @Inject constructor(
@@ -447,7 +447,6 @@ class TorRestarterReconnector @Inject constructor(
 
     private fun getDelayForCheckingBridges() =
         1000L * 60 * MIN_DELAY_CHECK_BRIDGE_MINUTES * ceil(
-            checkBridgesCounter / (bridgesDefaultRepository.getCheckQueueLength()
-                .toDouble() + bridgesCustomRepository.getCheckQueueLength().toDouble())
+            checkBridgesCounter / (bridgesDefaultRepository.getCheckQueueLength() * 2.0)
         ).toLong()
 }
